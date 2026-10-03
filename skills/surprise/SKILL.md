@@ -1,0 +1,238 @@
+---
+name: surprise
+description: >-
+  Overnight surprise run: while the user sleeps, review what is known about them and build
+  things they will be glad to find in the morning (something fun, something useful, a plan
+  they can approve), in a new dated folder under the Surprises folder named in the Setup
+  section. At most five items a run; budget left over goes to checking them and to running
+  the user's own maintenance skills. Nothing is sent or deleted, and nothing outside that
+  folder changes apart from the safe fixes those skills make. Trigger on /surprise, optionally
+  with a hint ("/surprise something for the garden"), when the user asks Claude to surprise
+  them, work while they sleep, or use up their tokens before they reset, and when they
+  review, update, move or delete an item from a past run (to keep its RECORD.md and the
+  ledger current). Not for a task the user has specified themselves.
+---
+
+# surprise
+
+The user goes to bed and Claude works through the night. In the morning they find things they did not ask for by name and are glad to have: cool, interesting, useful, fun, and mostly things they would not have thought of themselves. The run uses the usage limits that would otherwise reset unused, and it carries on by itself after a limit resets.
+
+This skill has two uses. Starting a run is everything from "Rules for the whole run" through "Morning hand-off". If the user is instead reviewing, updating, moving or deleting an item from a past run, go straight to "After the run: reviews, updates and moves".
+
+## Setup: fill these in before the first run
+
+This is a sanitized copy of a personal skill. Everything that was specific to its author has been replaced with the placeholders below. Edit this section once; the rest of the file refers to it.
+
+| Placeholder | What to put there |
+|---|---|
+| `<SURPRISES>` | The folder where every run gets a dated subfolder, for example `~/Documents/Surprises`. It also holds `ledger.md`, the short list of every past surprise and how the user reacted. Create the folder and an empty `ledger.md` before the first run. |
+| `<CACHE>` | A folder outside cloud sync for large files (video, audio, datasets over about 50 MB), for example `~/Library/Caches/surprise`. |
+| Off-limits paths | Anything on the computer that must never be read: a private disk image, a folder of someone else's files, a work drive. List each one in "Rules for the whole run" and in `reference/agent-rules.md`. Reading is otherwise allowed. |
+| Data sources | `reference/data-sources.md` lists where to learn what the user would like and how to read each source. Fill it in for the user's own files, apps and connectors. |
+| Maintenance skills | The user's own audit or housekeeping skills that carry a standing instruction to apply changes without asking, if any. Named in "Maintenance with what is left". Leave the list empty and maintenance becomes proposal-only. |
+| House style | The writing rules anything the user reads should follow. Written into `reference/agent-rules.md` under "Writing style". `scripts/stylecheck.py` checks for em dashes and curly quotes; change or drop it to match. |
+| People | Names, pronouns and household facts that agents must get right (a spouse, children, pets). Written into `reference/agent-rules.md` under "Truth". |
+
+## Rules for the whole run
+
+These hold from the first tool call to the morning message, for the main session and for every agent it starts. Copy `reference/agent-rules.md` into the run folder as `RULES.md` and make every agent read it first.
+
+**Never:**
+
+- **Delete anything.** Not a file, an email, a task, a calendar event, a draft or a branch. Inside the run folder, leave even the run's own scratch files; say they can go and let the user decide.
+- **Send any communication.** No email, text, chat message, comment, post, calendar invite or reply, and no email drafts either. Anything written for another person is a file in the run folder for the user to send themselves.
+- **Reorganize.** Do not move, rename or edit any existing file or folder outside the run folder. Do not tidy, sort, dedupe or "fix" anything where it lives. A stale path or a typo found along the way goes in the morning notes. The one exception is "Maintenance with what is left" below.
+- **Change any account or app.** Task managers, calendars, mail, cloud files, spreadsheets, documents, finance apps, GitHub, hosting providers, every site and app repo: all read-only. No commits, pushes, deploys, installs, upgrades, purchases, sign-ins, settings changes or scheduled tasks. The one exception is "Maintenance with what is left" below.
+- **Read an off-limits path** from the Setup section. Do not open, mount, list, copy, move, hash, search or read it. Exclude it from every recursive search, walk or copy. Do not mount any disk image. Every agent brief repeats this rule.
+- **Print or copy a secret.** No key, token or password, and no reading shell environment files that hold them.
+- **Use a visible browser or computer-use tools after the user has gone to bed.** Their screen is unattended. Check pages with headless Chrome through `_tools/cdp.mjs` in the run folder (copied from this skill's `scripts/`).
+- **Do anything that can raise a permission prompt while they are away.** A dialog nobody answers stalls the run. Sources that might prompt are tried once in preflight, while the user is present, or skipped.
+- **Give medical, legal or investment advice.** Health and money surprises organize the user's own records, show patterns with their sources, and list questions for a professional.
+
+**Fine:**
+
+- Creating new things in the run folder.
+- Plans, drafts, proposals and patch files that the user can review, edit and approve. A change to one of their repos or documents is delivered as a copy plus a patch, never applied.
+- Reading pretty much anything on the computer and in the user's accounts, read-only, to learn what they would like (see "Know the user first"). The remaining limits on reading are practical ones: secrets are never read or printed, off-limits paths are never touched, and a source that raises a permission prompt is tried only in preflight.
+- Read-only web lookups for public facts, with nothing about the user in the query.
+- Running the user's other skills in proposal-only form, with their output redirected into the run folder and their state files left alone. Their maintenance skills are the exception: they run as written (see "Maintenance with what is left").
+
+**Scope:**
+
+- What gets built is for the user's personal life unless the invocation includes `work`, which steers the run toward their job. Without it, work files may be read and can inform an item, but work is not the subject of one, work tools are not queried, and customer and colleague names stay out of anything the user might show someone.
+- Something made for or about another person (a spouse, a friend) is fine as a file for the user. It is never shared with that person.
+
+## Before they go to bed (preflight)
+
+Keep this under two minutes of the user's time. They are still at the keyboard, so this is the only chance to get anything from them.
+
+1. **Say what will happen** in two sentences, and that the result will be an `index.html` in a new folder. Say that leftover budget goes to the maintenance skills named in the Setup section, which apply their safe fixes, and that `no maintenance` skips them.
+2. **Power.** On a Mac, run `pmset -g batt`. If the computer is not on AC power, tell the user to plug it in now and wait for their reply. On this skill's first run the battery fell to about 1% and the Mac hibernated from roughly 1 AM until it was plugged in near 7 AM, so most of the night was lost; the app's keep-awake settings kept the Mac awake on battery, which is why it drained instead of sleeping. Also say: leave the lid open (a closed lid sleeps a Mac even on power, unless an external display is attached).
+   Then make sure the computer stays awake: in the Claude desktop app, confirm "Keep computer awake while Claude works" is on (if it is off, tell the user; do not change it) and call the app's keep-awake tool for the session. If those tools are not in the session, start `caffeinate -ims` in the background for the length of the run instead.
+3. **Permission mode.** Check the session's permission mode. If it is not the mode that skips permission prompts, tell the user one prompt will stall the whole night and ask them to switch it. They set it themselves.
+4. **Usage.** Read each usage window's percent used and reset time with the app's usage tool, or ask the user for a screenshot of their usage page if the tool is not there.
+5. **Run folder.** Create `<SURPRISES>/YYYY.MM.DD <short name>/` and move the session there, so nothing has to be moved in the morning. Large binaries go in `<CACHE>/YYYY.MM.DD/` instead, because the run folder may sync to the cloud.
+6. **Touch each data source once**, so any permission prompt appears while the user can answer it: one cheap read each from every connector and guarded folder in `reference/data-sources.md` this run might use. Note which answered. A source that fails or prompts is dropped for the night.
+7. **Session title.** Give the session a title the user will recognize in their session list.
+8. **One question at most**, and only if the answer changes what gets built. Otherwise tell the user they can go to bed, and start.
+
+If the user invoked the skill and walked away, do steps 2 to 7 anyway, record what could not be confirmed in `PROGRESS.md`, and carry on.
+
+## Know the user first
+
+Spend the first stretch on the main thread learning what would land. This is cheap and it decides everything.
+
+1. Read `<SURPRISES>/ledger.md`: every past surprise, how the user reacted, the idea bank, and the "do not repeat" list. Their reactions outrank everything below. For the detail on an item (what exactly was built, what they changed afterwards), open that run's `RECORD.md`.
+2. Read the hint in `$ARGUMENTS`, if any. A hint steers the run; it does not have to be the only thing built.
+3. Survey the sources in `reference/data-sources.md`. The signals that mattered most on the first run:
+   - **What they say they love:** a personal site's "now" and favorites pages, profiles, the things they have made.
+   - **What is parked:** a folder of pending notes, `TODO.md` and `TASKS.md` files in their projects, tasks that are old or filed under "someday", notes that end with "next step".
+   - **What is dated soon:** appointments, releases and deadlines in the next two weeks, from their notes, task manager and calendar.
+   - **Lists they keep:** spreadsheets and docs that are lists of things to get to.
+   - **What already exists:** their skills, scheduled tasks and their outputs. Do not rebuild something a skill or task already does for them.
+4. Write down eight to twelve candidates, then choose. A good night has a mix:
+   - at least one thing that is plainly fun;
+   - at least one thing that is useful this week;
+   - at least one plan or proposal they can approve;
+   - one flagship that gets the most care.
+   Prefer things grounded in the user's own data over things anyone could be given. Prefer few finished things over many half-finished ones: each item costs the user time to review, and the cap is five.
+
+Some kinds of surprise, as prompts and not as limits:
+
+- Business ideas built on what the user already has (their apps, their site, their work, their catalog of anything), each with a first step small enough to try.
+- Tasks that have sat for months, carried as far as the rules allow: the research done, the draft written, the plan laid out, the options compared. The task itself is never marked complete or edited.
+- Health insights from the user's own records: patterns across notes, a one-page brief before an appointment, questions to ask.
+- A prototype page or feature for one of their sites or apps, in a copy, with a patch.
+- A year-in-review or "by the numbers" page over data they have never seen charted.
+- A printable brief for something coming up.
+- A guide through a list they keep.
+- A game, toy or piece of music made for them.
+- A check they would not run themselves (dead links, stale paths, unused subscriptions, storage).
+- The next step of a project they paused, done in a copy so they can compare.
+
+Do not stay inside this list.
+
+## Budget and models
+
+The run exists partly to use limits that are about to reset, so read them and plan against them.
+
+- Read usage at preflight, before each wave of agents, and whenever an agent finishes. Use `date` for times; do not estimate them.
+- **How much to spend.** If the weekly reset is within 12 hours, the default is to use what is left, down to the reserve below. If the weekly reset is further away, spend at most 15 points of the weekly all-models limit unless the invocation says `use everything`. `light` means one or two small items and no more than 5 points.
+- **The session cannot change its own model.** Model choice happens per agent, with `model` on the Agent call. If the main thread should run on a different model, the user picks it in the app before bed.
+- **Which model for what:**
+
+| Work | Model |
+|---|---|
+| Orchestration on the main thread | whatever the user started the session on |
+| The flagship creative or judgment-heavy item, and its final polish | the top model, one or two agents at most |
+| Most builds, research and verification | the mid-size model |
+| Bulk lookups and extraction that a second pass will verify | the small model |
+| Anything computable (encodes, link checks, data passes, counts) | a script, which costs no tokens |
+
+- **The top model may have its own weekly limit, and it goes first.** Before starting any agent on it, check that limit. Start none above 70% used. If it passes 85% with agents still running on it, stop them and relaunch the same briefs on the mid-size model. Keep at least 5 points of it for orchestration and the morning message.
+- **Stopping an agent does not stop the agents it started.** Stop the children too, or they keep spending.
+- **5-hour window:** above 85% with more than 20 minutes to its reset, start nothing new until it resets.
+- **Weekly all-models:** stop starting new work at 90%, or at 97% with `use everything`.
+- Use background agents. Multi-agent workflow tools are for when the user has opted in to them.
+
+## How many items, and what the rest of the budget is for
+
+- **At most five items a run.** Fewer is fine. A hint that names a number ("/surprise two things") changes it for that run. The cap comes from the first run: it made eleven, reviewing them took the user a few hours, and two were not useful. Pick the five they would most want, lean toward small and specific, and make at least one of them fun.
+- **Budget left once the items are built does not go to a sixth item.** It goes, in this order, to:
+  1. Verifying and polishing the night's items (step 3 of "How to run the night").
+  2. Maintenance of things the user already has (below).
+
+### Maintenance with what is left
+
+- **Run the maintenance skills named in the Setup section as written,** each in its own agent, once the night's items are verified. Each must carry the user's standing instruction to apply what qualifies without asking, and each skill's own rules decide what may change: follow its "Never" list, its "apply only when" rule and its "ask the user" list exactly. This is the one exception to "Reorganize" and "Change any account or app" above. If the Setup section names no such skill, skip this and do the read-only review below instead.
+- **These rules of this skill still hold during maintenance:** never delete, never send a communication, never read an off-limits path, never print a secret, no visible browser or computer-use, and nothing that can raise a permission prompt. If a step of a maintenance skill needs one of them, skip that step and report it.
+- **Anything else worth a review that no skill covers** (a CLAUDE.md, a guide, a script, a folder of notes) is reviewed read-only. No skill defines a safe fix there, so nothing is changed: each finding goes in the report with a proposed fix or a patch file, for the user to approve in the morning.
+- **One short report,** `maintenance/README.md` in the run folder: every file changed outside the run folder, by path and by which skill changed it; what is waiting for the user; what was reviewed read-only. Findings ranked, one line each. It does not count toward the five. The morning page links to it in one line and the morning message says what was changed.
+- **Limits.** The stops in "Budget and models" apply to maintenance too, and so does step 7 of "How to run the night": start none of it in the last hour. `no maintenance` in the invocation skips it.
+
+## How to run the night
+
+1. **Set up the run folder:** `RULES.md` (from `reference/agent-rules.md`), `PROGRESS.md` (the plan, a status table, a log, and a recipe for relaunching an agent), `_briefs/<item>.md` for each item, `_tools/` (copy `scripts/` there), and `index.html` from `scripts/index-template.html` with every item marked `wip`. Write the index early: if the night is cut short, the user still finds a usable page.
+2. **One background agent per item, five items at most,** each with its own subfolder and a brief that says who the user is for this item, which sources to read, what to build, how to verify it, and what to write when done. A `README.md` in the subfolder means the agent finished. Give briefs by file path so a relaunch is one short prompt.
+3. **Verify each item as it lands,** before calling it done:
+   - `python3 _tools/stylecheck.py <folder>` for the house style in anything the user will read;
+   - look at one screenshot of anything visual;
+   - for anything interactive, a scripted run in headless Chrome with no console errors;
+   - for anything stating facts the user will rely on (dates, doses, money, facts about their life), a second agent that checks every claim against the primary source without reading the first agent's notes. On the first run this caught errors in a set of printable briefs and wrong facts in a game.
+   - Nothing about the user's life is invented. A detail not in their own files is left out or labeled as fiction.
+   - Before an item says something is unknown, unanswered or "not on file", search their mail, calendar and chat archives for it. On the first run the briefs left open questions that the user's mail answered.
+   - Confirm every negative finding a second way. Anything an item calls dead, broken, missing, wrong or unanswered is rechecked with a different tool before it goes on the page (for a link: curl, then a real browser through `_tools/cdp.mjs`), and the page says how it was checked. A failure in the checking script is reported as the script's failure, and "could not check" is kept apart from "is broken". The first run's link check called two working sites dead, and the user's reaction was that they need to be able to trust the data they get.
+   - Cut it down. The user found the first run's briefs overwhelming because they were so content-dense. Anything they will read or print holds only what they will use in the moment, in type they can read comfortably; the supporting detail goes in a separate file. Do not add a section because it could be relevant, and check whether the user already has their own version of the thing. The ledger's "What the user has said about how items should be" section has their words.
+4. **Keep the index true:** `python3 _tools/set_status.py <run folder> "<item title>" ok|warn|wip "<note>"` after each verification, and a dated line in `PROGRESS.md`.
+5. **Carrying on after a limit.** Agent completions wake the main thread, which is the main way the run continues. As a backstop, schedule one-shot check-ins a few minutes after each reset time, each telling the session to read `PROGRESS.md` and relaunch anything that died. Do not rely on them: on the first run none fired. If an agent died at a limit, its folder has no `README.md`; relaunch it from its brief with "continue from the files already there".
+6. **Maintenance, if budget is left.** When every item is verified, follow "Maintenance with what is left".
+7. **Do not start what cannot finish.** In the last hour before the user is likely to be up, verify and write up; start nothing new.
+
+## Morning hand-off
+
+In this order:
+
+- Bring `index.html` up to date: every item `ok`, `warn` with the caveat, or `wip` with how far it got.
+- If preflight started `caffeinate`, stop it.
+- Write `RECORD.md` at the top of the run folder, following `reference/record-template.md`: the run's facts, then one section per item with what it is, where it was delivered, the state it was delivered in, where it is now, and "not yet reviewed" for the user's reaction. This is the lasting record of the session. It stays in the run folder whatever happens to the items later.
+- Add the run to `<SURPRISES>/ledger.md`: the run's folder name, then one line per item (title, a phrase on what it is, "not yet reviewed"). The ledger is the short list the next run reads first; the detail lives in `RECORD.md`. The ledger and the improvement log are the only things this skill itself writes outside the run folder; what the maintenance skills changed is listed in `maintenance/README.md` and under "Maintenance" in `RECORD.md`.
+- Open `index.html` for the user, then one short chat message: what is ready, caveats that change what they should do, anything that failed or was skipped, and what was not verified. No claim that was not checked.
+
+## After the run: reviews, updates and moves
+
+**Look before asking, and advise instead of handing the user decisions.** When a review turns up an open question, check their mail, calendar, records and chat archives first, and ask only what no source can answer. Where a choice is a matter of judgment, make the recommendation, apply it, and say what was done so they can reverse it. Do not give them a list of decisions to make.
+
+The user goes through the items afterwards, one at a time, in this session or a later one. They may ask for an item to be changed, moved to its real home (a prototype into a site repo, a brief into the folder it belongs with), or deleted. The overnight rules about not moving or deleting cover the unattended run; once the user is directing the work, do what they ask, and keep the record true in the same turn:
+
+- **A reaction:** write it in that item's reaction line in `RECORD.md`, in their words, with the date. Put the matching keyword in the ledger (kept, used, liked, indifferent, do not repeat). Anything they never want again also goes in the ledger's "Do not repeat" list, and any idea they mention goes in its idea bank.
+- **An update:** add a dated line under "Since then" saying what changed and why. Leave "Delivered" and "State when delivered" as written; they record what the user woke up to.
+- **A move:** move it, then set "Where it is now" to the full new path, add a dated "Since then" line, fix the item's link in the run's `index.html`, and sweep for other references to the old path.
+- **A deletion:** at the user's request only, and to the Trash. Set "Where it is now" to "deleted" with the date, and say why under "Since then".
+- **A move of the whole run folder:** update the "This folder" line, and the folder name in the ledger if it changed.
+
+A `CLAUDE.md` in `<SURPRISES>` can tell any session opened in that folder to do the same.
+
+## Files
+
+| What | Where |
+|---|---|
+| Rules every agent reads | `reference/agent-rules.md` (copied to the run folder as `RULES.md`) |
+| Data sources and how to read each | `reference/data-sources.md` |
+| Headless Chrome driver, style check, index status setter, index template | `scripts/` |
+| The record of one run: every item, where it is now, what changed, the user's reaction | `RECORD.md` in that run's folder (format in `reference/record-template.md`) |
+| The short list across all runs: one line per item, reactions, do-not-repeat list, idea bank | `<SURPRISES>/ledger.md` |
+| Friction and improvement log | `improvement-log.md` in this folder |
+| Each run | `<SURPRISES>/YYYY.MM.DD <short name>/` |
+
+## Reflect and improve (SUGGEST ONLY)
+
+Last step of every run, after the morning message. It also runs when a run fails, stalls or is cut short; those runs matter most.
+
+**This skill never edits itself.** It does not change its own `SKILL.md`, its rules, its budget thresholds, its model table, its reference files or its scripts. It writes suggestions to a log that the user reviews.
+
+**Log:** `improvement-log.md` in this skill's folder. Newest entries on top. It lives in the skill's folder because every run writes to a different folder.
+
+The log is about the skill. What the user thought of each surprise goes in that run's `RECORD.md` and the ledger, not here.
+
+### Every run: friction note
+
+Add a dated entry of one to three lines on what went wrong or wasted effort. Things worth catching in this skill:
+
+- Power and sleep: whether the computer stayed awake all night, the battery level at the start and end, how long the run was actually working.
+- Limits: each window's percent at the start and end, which limit was hit first, whether any agent died at a limit, and whether the thresholds above stopped work too early or too late.
+- Model choices: an item that needed a stronger model than it got, or top-model budget spent on work a smaller model would have done as well.
+- Continuation: whether the check-ins fired, and how the run resumed after a reset.
+- Preflight: a source that prompted or hung overnight even though preflight passed, or a check the user had to be asked about that could have been read.
+- Sources: one that was empty, stale, unreadable, or richer than expected.
+- Verification: errors the second pass caught, and errors the user found that it missed.
+- Rules: anything that came close to a rule in "Rules for the whole run", and any rule that blocked something the user would have wanted.
+- The mix: too many items, too few, items that overlapped something the user already has.
+- An agent blocked from writing a file, and anything left for the main thread to save.
+
+"No notable friction" is a valid entry.
+
+### Synthesis
+
+This skill is invoked by hand and runs irregularly, so a fixed weekly synthesis does not fit. At the start of this step, check the log and synthesize when either there are 3 or more friction notes since the last synthesis, or the last synthesis is more than 60 days old and at least one new note exists.
+
+When it triggers, read the notes since the last synthesis and the ledger's reactions, look for recurring patterns, and add a dated `## Synthesis` entry with a short prioritized list of concrete proposed refinements. Tag each `STATUS: AWAITING REVIEW`. Do not apply any of them.

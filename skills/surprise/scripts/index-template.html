@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Good morning</title>
+<style>
+  :root {
+    --bg: #f6f1e7; --surface: #fffdf8; --text: #2b2620; --muted: #6f6557; --accent: #b4532a;
+    --accent-soft: rgba(180, 83, 42, 0.10); --border: rgba(43, 38, 32, 0.12);
+    --ok: #2f6b3c; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191613; --surface: #221e19; --text: #ece4d6; --muted: #a1968a; --accent: #e08a62;
+      --accent-soft: rgba(224, 138, 98, 0.14); --border: rgba(236, 228, 214, 0.12);
+      --ok: #7fc48d; --warn: #e0b057;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 48px 16px 80px; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.55;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-family: Georgia, "Iowan Old Style", serif; font-weight: 400; font-size: clamp(34px, 6vw, 48px); margin: 0 0 8px; line-height: 1.1; }
+  .lede { color: var(--muted); margin: 0 0 8px; font-size: 17px; }
+  .rules { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+  h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 36px 0 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 19px; font-weight: 600; }
+  .card h3 .emoji { margin-right: 8px; }
+  .card p { margin: 6px 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .links a {
+    display: inline-block; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--accent);
+    color: var(--accent); text-decoration: none; font-size: 14px;
+  }
+  .links a.primary { background: var(--accent); color: var(--surface); }
+  .links a:hover, .links a:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
+  .status { font-size: 13px; margin-top: 10px; color: var(--muted); }
+  .status b { font-weight: 600; }
+  .status.ok b { color: var(--ok); }
+  .status.warn b { color: var(--warn); }
+  .foot { color: var(--muted); font-size: 14px; margin-top: 36px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Good morning</h1>
+  <p class="lede">Here is what got built overnight, RUN_DATES.</p>
+  <p class="rules">Everything is in this folder. Nothing was sent, published, committed, deleted or changed anywhere else. Your repos, files, tasks, email and calendars were only read.</p>
+  <div id="list"></div>
+  <p class="foot" id="foot"></p>
+</main>
+<script>
+// One entry per item. Keep each item's first line in exactly this shape, because scripts/set_status.py edits it:
+//     { emoji: "🐈", title: "Item title", status: "wip",
+// status: "ok" = finished and checked, "warn" = finished with a caveat or partly done (add a note), "wip" = still being built.
+// links: [label, path relative to this file, true for the main link].
+const UPDATED = "not yet";
+const SECTIONS = [
+  { title: "For fun", items: [
+    { emoji: "🎁", title: "Example item", status: "wip",
+      text: "One or two plain sentences: what it is and why it is here.",
+      links: [["Open", "example/index.html", true], ["Notes", "example/README.md"]] },
+  ]},
+  { title: "Useful", items: [
+  ]},
+];
+const LABEL = { ok: "Finished and checked.", warn: "Finished, with a caveat.", wip: "Still being built when this page was last saved. Open it to see how far it got." };
+const list = document.getElementById("list");
+SECTIONS.forEach(sec => {
+  if (!sec.items.length) return;
+  const h = document.createElement("h2"); h.textContent = sec.title; list.appendChild(h);
+  sec.items.forEach(it => {
+    const c = document.createElement("section"); c.className = "card";
+    const h3 = document.createElement("h3");
+    const e = document.createElement("span"); e.className = "emoji"; e.textContent = it.emoji; e.setAttribute("aria-hidden", "true");
+    h3.append(e, document.createTextNode(it.title)); c.appendChild(h3);
+    const p = document.createElement("p"); p.textContent = it.text; c.appendChild(p);
+    const links = document.createElement("div"); links.className = "links";
+    it.links.forEach(([label, href, primary]) => {
+      const a = document.createElement("a"); a.textContent = label; a.href = encodeURI(href); if (primary) a.className = "primary";
+      links.appendChild(a);
+    });
+    c.appendChild(links);
+    const s = document.createElement("p"); s.className = "status " + it.status;
+    const b = document.createElement("b"); b.textContent = LABEL[it.status];
+    s.appendChild(b); if (it.note) s.appendChild(document.createTextNode(" " + it.note));
+    c.appendChild(s);
+    list.appendChild(c);
+  });
+});
+document.getElementById("foot").textContent = "Page last updated " + UPDATED + ".";
+</script>
+</body>
+</html>
