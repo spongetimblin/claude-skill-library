@@ -13,6 +13,7 @@ Copy the skill's folder into `~/.claude/skills/` (so `~/.claude/skills/search/SK
 <!-- catalog:start -->
 | Skill | What it does | How it is published |
 |---|---|---|
+| [`gworkspace-api-personal`](skills/gworkspace-api-personal/) | Lets Claude write to your Google Sheets, edit your Google Docs and attach Drive files to Calendar events, through a token-gated Apps Script web app you deploy from your own account. | copy of the skill I use, with personal details replaced (2026-10-03) |
 | [`search`](skills/search/) | Search your past Claude sessions by what was said in them: Claude Code, Cowork and exported Claude Chat conversations, with ranking, related-word search and title browsing. | exact copy of the skill I use (2026-10-03) |
 | [`surprise`](skills/surprise/) | An overnight run that builds a few things you did not ask for and leaves them in a dated folder, with strict rules about what it may touch. | written by hand from the skill I use, with personal details removed (2026-10-03) |
 <!-- catalog:end -->

@@ -1,0 +1,5 @@
+# The index holds a copy of conversation text.
+data/
+# Account ids and folder paths.
+config.json
+__pycache__/
