@@ -32,14 +32,39 @@ Naming note (renamed 2026-09-04 from `gsheets-personal`): the env vars, the Apps
 
 ## Call pattern
 
-POST JSON; always use `-sL`, and NEVER pass `-X POST`. Apps Script answers with a 302 redirect, and `-X POST` forces POST onto the redirect, which returns Google's "Page Not Found" HTML instead of your result (`-d` alone already makes the first request a POST):
+**Call the web app with `scripts/gws_call.py`, never a bare `curl`.** Google intermittently fails to deliver this web app's replies. The script runs and finishes, but the reply, which Google serves from `script.googleusercontent.com` after a redirect, stalls for 10 to 30 seconds and then arrives as a "Page Not Found" page or a redirect back to the web app. Sometimes the first request stalls as well. A bare `curl` has no timeout and no retry, so it hangs or returns non-JSON. The client puts a timeout on both requests and resends when that is safe. Measured 2026-10-06: 12 of 40 pings failed this way in 23 minutes, while the Apps Script execution log showed every run completing in about half a second, no caller other than Claude, and the work-account twin answering 40 of 40 at the same moments. The cause is on Google's side and specific to this deployment; nothing in `Code.gs` is slow.
+
+The client is this skill's own copy and calls only the personal web app, through `GSHEETS_PERSONAL_API_URL` and `GSHEETS_PERSONAL_API_TOKEN`. The work skill has a separate copy in its own folder. Never call one account's web app with the other skill's script.
 
 ```bash
-curl -sL -H 'Content-Type: application/json' \
-  -d "{\"token\":\"$GSHEETS_PERSONAL_API_TOKEN\",\"op\":\"ping\"}" "$GSHEETS_PERSONAL_API_URL"
+python3 ~/.claude/skills/gworkspace-api-personal/scripts/gws_call.py ping
 ```
 
-For payloads with real content, build the JSON in Python (proper escaping of emoji/quotes) rather than hand-rolling shell strings. Responses are `{"ok":true,"result":{...}}` or `{"ok":false,"error":"..."}`; always check `ok`. Latency is ~1–3s per call.
+```bash
+python3 ~/.claude/skills/gworkspace-api-personal/scripts/gws_call.py read_range '{"spreadsheet_id": "ID", "sheet": "Tab", "range": "A1:C5"}'
+```
+
+Several calls in one command, run in order and stopped at the first failure. Pass the JSON on stdin so quotes and emoji need no shell escaping:
+
+```bash
+python3 ~/.claude/skills/gworkspace-api-personal/scripts/gws_call.py --batch <<'EOF'
+{"defaults": {"spreadsheet_id": "ID", "sheet": "Tab"},
+ "steps": [{"op": "write_range", "range": "B5:C5", "values": [[1, "two"]]},
+           {"op": "read_range", "range": "A5:C5"}]}
+EOF
+```
+
+From Python, add the `scripts` folder to `sys.path`, then `from gws_call import call`; `call("read_range", spreadsheet_id=..., sheet=..., range=...)` returns the `result` or raises.
+
+Each response is one JSON line: `{"ok":true,"result":{...}}` or `{"ok":false,"error":"..."}`; always check `ok`. A healthy call takes 1 to 3 seconds. One that had to be resent takes 10 to 40 and carries `"attempts": N`; the retry notes go to stderr. Exit codes are in the script's docstring.
+
+What the client does when a reply is lost:
+
+- **It resends every read and every write that can be sent twice,** up to five attempts: `write_range`, `set_cell`, `clear_range`, `set_link`, `set_note`, `attach_to_event`, `strip_meet`, `doc_set_link`, `doc_set_text_style`, `doc_replace_paragraph`. After a resent write, `old_value` in the result may already be the new value; the audit spreadsheet keeps the original.
+- **It never resends `append_rows`, `add_row`, `doc_replace_text`, `doc_insert_paragraph_after` or `doc_delete_paragraph`,** because a second send could apply the change twice. It exits with code 3 and `"outcome_unknown": true`. Read the sheet or doc back to see whether the change landed before sending it again. For a new sheet row, avoid the problem: read the last row with `get_headers` and `write_range` the next row instead of using `append_rows`.
+- **An op added to `Code.gs` later is not resent** until its name is added to `RETRY_SAFE` in the client. Add it there when sending it twice leaves the same result as sending it once.
+
+If the client is missing and `curl` is the only option: use `-sL --max-time 60`, and never pass `-X POST`. Apps Script answers with a 302 redirect, and `-X POST` forces POST onto the redirect, which returns "Page Not Found". A `curl` command line also shows the token in the process list while it runs, which the client avoids.
 
 ## Ops
 
@@ -79,7 +104,7 @@ Every doc op takes `doc_id` (the long id from the Doc's URL). Elements are addre
 
 `doc_get_text` also accepts `with_links: true` (adds a `links` array, `{text, url}`, per element: the only way to see where a URL's text actually points) and `with_style: true` (adds `style: {paragraph, text}` per element, for comparing an edited paragraph against its neighbours).
 
-Docs caveats, learned on the work twin 2026-09-04 and confirmed here on a throwaway test Doc the same day: `doc_replace_text` keeps the hyperlink attribute of the matched run, so replacing a URL's text does not change where it links (check with `with_links`, fix with `doc_set_link`). `doc_insert_paragraph_after` copies attributes imperfectly (on the work account's DPA template the new paragraph came out bold, black, and with default spacing next to navy 10.5pt Arial neighbours; on the personal test Doc it lost the neighbour's spacing and indent attributes); always follow it with `doc_set_text_style` using `copy_style_from` a plain body paragraph, then confirm with `with_style` that the two elements' `style` objects are identical. `copy_style_from` can only copy attributes the reference paragraph has set explicitly; if the neighbour uses document defaults, the text attributes it copies are empty. `with_style` reports only the attributes set explicitly on the element's first character, so an empty `text` style means "no explicit attributes", not "default appearance": on the personal test Doc, a paragraph whose text had been replaced with `doc_replace_paragraph` next to a styled neighbour rendered bold navy Arial 11 in the Docs UI while `with_style` returned `{}` for it. When appearance matters, open the Doc in the browser and check. Paragraphs that look separate in the Drive connector's rendering can be one element with line breaks, so read `doc_get_text` before choosing an insert point. A call occasionally returns a non-JSON Google redirect page even though the write succeeded (seen here on a read right after `doc_set_link`): re-read before retrying, never blindly retry a mutation.
+Docs caveats, learned on the work twin 2026-09-04 and confirmed here on a throwaway test Doc the same day: `doc_replace_text` keeps the hyperlink attribute of the matched run, so replacing a URL's text does not change where it links (check with `with_links`, fix with `doc_set_link`). `doc_insert_paragraph_after` copies attributes imperfectly (on the work account's DPA template the new paragraph came out bold, black, and with default spacing next to navy 10.5pt Arial neighbours; on the personal test Doc it lost the neighbour's spacing and indent attributes); always follow it with `doc_set_text_style` using `copy_style_from` a plain body paragraph, then confirm with `with_style` that the two elements' `style` objects are identical. `copy_style_from` can only copy attributes the reference paragraph has set explicitly; if the neighbour uses document defaults, the text attributes it copies are empty. `with_style` reports only the attributes set explicitly on the element's first character, so an empty `text` style means "no explicit attributes", not "default appearance": on the personal test Doc, a paragraph whose text had been replaced with `doc_replace_paragraph` next to a styled neighbour rendered bold navy Arial 11 in the Docs UI while `with_style` returned `{}` for it. When appearance matters, open the Doc in the browser and check. Paragraphs that look separate in the Drive connector's rendering can be one element with line breaks, so read `doc_get_text` before choosing an insert point. A lost reply does not mean the write failed (see "Call pattern"): `gws_call.py` resends the ops that are safe to send twice, and for the others, re-read the doc before sending again.
 
 ## Rules
 
@@ -99,5 +124,6 @@ Use the Google Drive connector (`read_file_content`, which can include comments)
 
 ## Related
 
-- First consumer of the Sheets ops: `~/.claude/skills/cat-food-log/` (Cat Food & Weight Log; uses `add_row`, `set_link`, `set_note`).
+- First consumer of the Sheets ops: `~/.claude/skills/cat-food-log/` (Cat Food & Weight Log; uses `write_range`, `set_link`, `set_note`).
+- `~/.claude/scheduled-tasks/reach-podcast-guests-sync/reach_sync.py` imports `scripts/gws_call.py`. If the client moves or its `call()` signature changes, update that script too.
 - Deploy/redeploy/revoke instructions: `apps-script/SETUP.md`.

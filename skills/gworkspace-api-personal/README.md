@@ -6,6 +6,7 @@ A Claude Code skill that lets Claude write to your Google Sheets and edit your G
 
 - `apps-script/Code.gs` is the web app. It accepts a fixed list of operations (read a range, set a cell, add a row, find and replace in a doc, and so on), every request must carry a secret token, and every change is logged with its old value to an audit spreadsheet in your Drive.
 - `apps-script/SETUP.md` is the short deployment checklist: create the script, set the token, deploy, store the URL and token as environment variables.
+- `scripts/gws_call.py` is the client Claude calls the web app with. Google sometimes loses a web app's reply after the script has run, so the client puts a timeout on each request and resends the operations that are safe to send twice. It needs only Python 3.
 - `SKILL.md` tells Claude how to call it and the rules it follows (show you a write before it overwrites anything, verify after writing, never print the token).
 
 The friendlier walkthrough, where Claude does most of the setup for you by driving your browser, is here: https://chadtimbl.in/writings/files/claude-google-sheets-docs-setup-guide.md
