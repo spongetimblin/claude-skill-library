@@ -41,7 +41,7 @@ What this surprise run produced, and what has become of each item since. Written
 
 ## Maintenance
 
-<If the run did maintenance: one line per skill run (the maintenance skills named in the Setup section) saying what it changed and what it left for the user, and a pointer to `maintenance/README.md`. Otherwise "none".>
+<If the run did maintenance: one line per step it reached (the maintenance skills named in the Setup section, CLAUDE.md files, skills, scheduled tasks, websites and apps, MCP servers, second pass) saying what it changed and what it left for the user, then where it stopped and why, and a pointer to `maintenance/README.md`. Otherwise "none".>
 
 ## Supporting files in this folder
 

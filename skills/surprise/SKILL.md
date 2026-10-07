@@ -4,18 +4,19 @@ description: >-
   Overnight surprise run: while the user sleeps, review what is known about them and build
   things they will be glad to find in the morning (something fun, something useful, a plan
   they can approve), in a new dated folder under the Surprises folder named in the Setup
-  section. At most five items a run; budget left over goes to checking them and to running
-  the user's own maintenance skills. Nothing is sent or deleted, and nothing outside that
-  folder changes apart from the safe fixes those skills make. Trigger on /surprise, optionally
-  with a hint ("/surprise something for the garden"), when the user asks Claude to surprise
-  them, work while they sleep, or use up their tokens before they reset, and when they
-  review, update, move or delete an item from a past run (to keep its RECORD.md and the
-  ledger current). Not for a task the user has specified themselves.
+  section. At most five items a run; the rest of the weekly budget goes to checking them and
+  then to maintenance of what the user already has (apps, MCP servers, skills, scheduled
+  tasks, websites). The run ends before the weekly limit resets. Nothing is sent or deleted,
+  and nothing outside that folder changes apart from safe fixes made during maintenance.
+  Trigger on /surprise, optionally with a hint ("/surprise something for the garden"), when
+  the user asks Claude to surprise them, work while they sleep, or use up their tokens before
+  they reset, and when they review, update, move or delete an item from a past run (to keep
+  its RECORD.md and the ledger current). Not for a task the user has specified themselves.
 ---
 
 # surprise
 
-The user goes to bed and Claude works through the night. In the morning they find things they did not ask for by name and are glad to have: cool, interesting, useful, fun, and mostly things they would not have thought of themselves. The run uses the usage limits that would otherwise reset unused, and it carries on by itself after a limit resets.
+The user goes to bed and Claude works through the night. In the morning they find things they did not ask for by name and are glad to have: cool, interesting, useful, fun, and mostly things they would not have thought of themselves. The run uses the usage limits that would otherwise reset unused, and it carries on by itself after a 5-hour limit resets. It spends nothing after the weekly reset.
 
 This skill has two uses. Starting a run is everything from "Rules for the whole run" through "Morning hand-off". If the user is instead reviewing, updating, moving or deleting an item from a past run, go straight to "After the run: reviews, updates and moves".
 
@@ -29,7 +30,9 @@ This is a sanitized copy of a personal skill. Everything that was specific to it
 | `<CACHE>` | A folder outside cloud sync for large files (video, audio, datasets over about 50 MB), for example `~/Library/Caches/surprise`. |
 | Off-limits paths | Anything on the computer that must never be read: a private disk image, a folder of someone else's files, a work drive. List each one in "Rules for the whole run" and in `reference/agent-rules.md`. Reading is otherwise allowed. |
 | Data sources | `reference/data-sources.md` lists where to learn what the user would like and how to read each source. Fill it in for the user's own files, apps and connectors. |
-| Maintenance skills | The user's own audit or housekeeping skills that carry a standing instruction to apply changes without asking, if any. Named in "Maintenance with what is left". Leave the list empty and maintenance becomes proposal-only. |
+| Maintenance skills | The user's own audit or housekeeping skills that carry a standing instruction to apply changes without asking, if any. They run first in `reference/maintenance.md`. Leave the list empty and maintenance starts at that file's next step. |
+| `<APPS>`, `<WEBSITES>` | The folders that hold the user's app and website repos, so maintenance can find them. Written into "The order of work" in `reference/maintenance.md`. Skills, scheduled tasks and CLAUDE.md files are found under `~/.claude` and in each project. |
+| Maintenance fixes | `reference/maintenance.md` lets the run apply two narrow kinds of fix outside the run folder while the user sleeps. Read its safe-fix rule before the first run. To make maintenance report-only, say so at the top of that file. |
 | House style | The writing rules anything the user reads should follow. Written into `reference/agent-rules.md` under "Writing style". `scripts/stylecheck.py` checks for em dashes and curly quotes; change or drop it to match. |
 | People | Names, pronouns and household facts that agents must get right (a spouse, children, pets). Written into `reference/agent-rules.md` under "Truth". |
 
@@ -66,17 +69,18 @@ These hold from the first tool call to the morning message, for the main session
 
 Keep this under two minutes of the user's time. They are still at the keyboard, so this is the only chance to get anything from them.
 
-1. **Say what will happen** in two sentences, and that the result will be an `index.html` in a new folder. Say that leftover budget goes to the maintenance skills named in the Setup section, which apply their safe fixes, and that `no maintenance` skips them.
+1. **Say what will happen** in two sentences, and that the result will be an `index.html` in a new folder. Say that once the items are built and checked, the rest of the budget goes to maintenance of their apps, MCP servers, skills, scheduled tasks and websites, which applies safe fixes only, and that `no maintenance` skips it.
 2. **Power.** On a Mac, run `pmset -g batt`. If the computer is not on AC power, tell the user to plug it in now and wait for their reply. On this skill's first run the battery fell to about 1% and the Mac hibernated from roughly 1 AM until it was plugged in near 7 AM, so most of the night was lost; the app's keep-awake settings kept the Mac awake on battery, which is why it drained instead of sleeping. Also say: leave the lid open (a closed lid sleeps a Mac even on power, unless an external display is attached).
    Then make sure the computer stays awake: in the Claude desktop app, confirm "Keep computer awake while Claude works" is on (if it is off, tell the user; do not change it) and call the app's keep-awake tool for the session. If those tools are not in the session, start `caffeinate -ims` in the background for the length of the run instead.
 3. **Permission mode.** Check the session's permission mode. If it is not the mode that skips permission prompts, tell the user one prompt will stall the whole night and ask them to switch it. They set it themselves.
-4. **Usage.** Read each usage window's percent used and reset time with the app's usage tool, or ask the user for a screenshot of their usage page if the tool is not there.
-5. **Run folder.** Create `<SURPRISES>/YYYY.MM.DD <short name>/` and move the session there, so nothing has to be moved in the morning. Large binaries go in `<CACHE>/YYYY.MM.DD/` instead, because the run folder may sync to the cloud.
-6. **Touch each data source once**, so any permission prompt appears while the user can answer it: one cheap read each from every connector and guarded folder in `reference/data-sources.md` this run might use. Note which answered. A source that fails or prompts is dropped for the night.
-7. **Session title.** Give the session a title the user will recognize in their session list.
-8. **One question at most**, and only if the answer changes what gets built. Otherwise tell the user they can go to bed, and start.
+4. **Model.** Check which model the session is on. If it is the top model, tell the user to switch it to the mid-size model in the app's model picker before they go to bed, wait for their reply, and check again. The main thread stays on its starting model all night and cannot switch itself. On the first run, orchestration alone used about 3 points of the top model's weekly limit in 30 minutes, and if that limit runs out the main thread stops and the run stalls. The flagship item still gets the top model through its own agent. If the user has walked away with the session on the top model, record it in `PROGRESS.md`, start no top-model agents that night so the main thread has that limit to itself, and keep the main thread's calls few.
+5. **Usage.** Read each usage window's percent used and reset time with the app's usage tool, or ask the user for a screenshot of their usage page if the tool is not there. Tell the user the weekly percent used now, that the run will use all of it, when the weekly limit resets, and that the run ends before that reset and spends nothing after it. Say that `light` or `stop at N%` limits the run.
+6. **Run folder.** Create `<SURPRISES>/YYYY.MM.DD <short name>/` and move the session there, so nothing has to be moved in the morning. Large binaries go in `<CACHE>/YYYY.MM.DD/` instead, because the run folder may sync to the cloud.
+7. **Touch each data source once**, so any permission prompt appears while the user can answer it: one cheap read each from every connector and guarded folder in `reference/data-sources.md` this run might use. Note which answered. A source that fails or prompts is dropped for the night.
+8. **Session title.** Give the session a title the user will recognize in their session list.
+9. **One question at most**, and only if the answer changes what gets built. Otherwise tell the user they can go to bed, and start.
 
-If the user invoked the skill and walked away, do steps 2 to 7 anyway, record what could not be confirmed in `PROGRESS.md`, and carry on.
+If the user invoked the skill and walked away, do steps 2 to 8 anyway, record what could not be confirmed in `PROGRESS.md`, and carry on.
 
 ## Know the user first
 
@@ -117,13 +121,13 @@ Do not stay inside this list.
 The run exists partly to use limits that are about to reset, so read them and plan against them.
 
 - Read usage at preflight, before each wave of agents, and whenever an agent finishes. Use `date` for times; do not estimate them.
-- **How much to spend.** If the weekly reset is within 12 hours, the default is to use what is left, down to the reserve below. If the weekly reset is further away, spend at most 15 points of the weekly all-models limit unless the invocation says `use everything`. `light` means one or two small items and no more than 5 points.
-- **The session cannot change its own model.** Model choice happens per agent, with `model` on the Agent call. If the main thread should run on a different model, the user picks it in the app before bed.
+- **How much to spend.** Use what is left, down to the stops below, whenever the run is started and however far off the weekly reset is. `stop at N%` in the invocation sets a lower final stop for that run. `light` means one or two small items and no more than 5 points.
+- **The session cannot change its own model.** Model choice happens per agent, with `model` on the Agent call. If the main thread should run on a different model, the user picks it in the app before bed; preflight step 4 checks this and asks them to move off the top model.
 - **Which model for what:**
 
 | Work | Model |
 |---|---|
-| Orchestration on the main thread | whatever the user started the session on |
+| Orchestration on the main thread | the mid-size model. It runs on whatever the user started the session on, so preflight step 4 asks them to switch if that is the top model |
 | The flagship creative or judgment-heavy item, and its final polish | the top model, one or two agents at most |
 | Most builds, research and verification | the mid-size model |
 | Bulk lookups and extraction that a second pass will verify | the small model |
@@ -132,7 +136,19 @@ The run exists partly to use limits that are about to reset, so read them and pl
 - **The top model may have its own weekly limit, and it goes first.** Before starting any agent on it, check that limit. Start none above 70% used. If it passes 85% with agents still running on it, stop them and relaunch the same briefs on the mid-size model. Keep at least 5 points of it for orchestration and the morning message.
 - **Stopping an agent does not stop the agents it started.** Stop the children too, or they keep spending.
 - **5-hour window:** above 85% with more than 20 minutes to its reset, start nothing new until it resets.
-- **Weekly all-models:** stop starting new work at 90%, or at 97% with `use everything`.
+- **Weekly all-models: spend all of it,** in four stretches. The lines cover the whole run, items included.
+  - Below 90%: one agent per item, then up to four maintenance agents at a time.
+  - From 90%: one agent at a time, one asset each, so that usage is read often and the next two lines are not overshot.
+  - At 95%: start no new agent that may edit anything, and do the morning hand-off. Every edit, the maintenance report and the hand-off are finished by 97%.
+  - From there to 100%: read-only review only, one agent at a time, each adding its findings to `maintenance/all-findings.md` as it finds them, so that being cut off at the limit loses nothing.
+  - `stop at N%` moves the 100 down to N and the other three lines down by the same amount.
+- **The weekly reset ends the run.** Read its exact time from the usage tool at preflight. When that reset comes before the user is likely to be up, nothing is spent after it: no agent running, no tool call, no message, no scheduled check-in. Work back from the reset time R:
+  - R minus 60 minutes: start no new agent that may edit anything.
+  - R minus 45 minutes: stop any editing agent still running, with its children, and do the whole morning hand-off, "Reflect and improve" included.
+  - Until R minus 10 minutes: read-only review may continue, one agent at a time.
+  - R minus 10 minutes: stop every agent and its children, delete every scheduled check-in, stop `caffeinate` if preflight started it, and end the turn. Leave nothing that can wake the session.
+  - The main thread acts only when something wakes it. When the run starts, start two background timers, one for R minus 45 and one for R minus 10: `until [ "$(date +%s)" -ge <epoch seconds> ]; do sleep 30; done; echo "<which deadline>"`, run as a background command. Each wakes the main thread when it exits. If one exits early, check `date` and start it again. Check `date` at every wake, and put R minus 15 minutes in every agent's brief as its deadline.
+  - If the main thread is woken after R anyway, do nothing and end the turn.
 - Use background agents. Multi-agent workflow tools are for when the user has opted in to them.
 
 ## How many items, and what the rest of the budget is for
@@ -140,15 +156,22 @@ The run exists partly to use limits that are about to reset, so read them and pl
 - **At most five items a run.** Fewer is fine. A hint that names a number ("/surprise two things") changes it for that run. The cap comes from the first run: it made eleven, reviewing them took the user a few hours, and two were not useful. Pick the five they would most want, lean toward small and specific, and make at least one of them fun.
 - **Budget left once the items are built does not go to a sixth item.** It goes, in this order, to:
   1. Verifying and polishing the night's items (step 3 of "How to run the night").
-  2. Maintenance of things the user already has (below).
+  2. Maintenance of things the user already has (below), which carries on until a stop in "Budget and models" is reached.
 
 ### Maintenance with what is left
 
-- **Run the maintenance skills named in the Setup section as written,** each in its own agent, once the night's items are verified. Each must carry the user's standing instruction to apply what qualifies without asking, and each skill's own rules decide what may change: follow its "Never" list, its "apply only when" rule and its "ask the user" list exactly. This is the one exception to "Reorganize" and "Change any account or app" above. If the Setup section names no such skill, skip this and do the read-only review below instead.
-- **These rules of this skill still hold during maintenance:** never delete, never send a communication, never read an off-limits path, never print a secret, no visible browser or computer-use, and nothing that can raise a permission prompt. If a step of a maintenance skill needs one of them, skip that step and report it.
-- **Anything else worth a review that no skill covers** (a CLAUDE.md, a guide, a script, a folder of notes) is reviewed read-only. No skill defines a safe fix there, so nothing is changed: each finding goes in the report with a proposed fix or a patch file, for the user to approve in the morning.
-- **One short report,** `maintenance/README.md` in the run folder: every file changed outside the run folder, by path and by which skill changed it; what is waiting for the user; what was reviewed read-only. Findings ranked, one line each. It does not count toward the five. The morning page links to it in one line and the morning message says what was changed.
-- **Limits.** The stops in "Budget and models" apply to maintenance too, and so does step 7 of "How to run the night": start none of it in the last hour. `no maintenance` in the invocation skips it.
+Maintenance does not end when the user's maintenance skills have run. It works through everything they already have and stops only at a budget stop, for the weekly reset, or for the morning.
+
+- **Read `reference/maintenance.md` before starting.** Copy it into the run folder as `MAINTENANCE.md` and have every maintenance agent read it after `RULES.md`. It holds the order of work, the checks for each kind of asset, the safe-fix rule, the maintenance ledger and the report format.
+- **The order of work:** the maintenance skills named in the Setup section; then whatever those skills skipped, CLAUDE.md files, skills, scheduled tasks, websites and apps, and the connected MCP servers; then a second pass that rechecks the night's changes, turns open findings into patch files, and reviews each asset in more depth, repeated until a stop.
+- **CLAUDE.md files get extra care, in every step,** because they are a project's instructions. The one edit allowed in a CLAUDE.md, or in a rules file one points to, is replacing a stale path, filename, command name or count with the only correct one, proved by a command, with no word around it changed. Anything that touches a rule is suggest-only. The full conditions are in "CLAUDE.md files: extra care" in `reference/maintenance.md`, and they also bind the maintenance skills during a run.
+- **The maintenance skills named in the Setup section run as written, apart from that CLAUDE.md limit,** each in its own agent, once the night's items are verified. Each must carry the user's standing instruction to apply what qualifies without asking, and each skill's own rules decide what may change: follow its "Never" list, its "apply only when" rule and its "ask the user" list exactly.
+- **Everything after those skills follows the safe-fix rule in `reference/maintenance.md`.** A fix is applied only when it corrects a fact in a doc without changing what runs or what a session is told to do, or when it is a bug fix proved by a command that fails before the edit and passes after it. The original of every file changed is copied into `maintenance/before/` first. Every other finding, including anything that optimizes, restyles, rewords or changes a rule, is reported with a proposed fix or a patch file.
+- **Maintenance is the one exception to "Reorganize" and "Change any account or app" above,** and only as far as those skills' rules and the safe-fix rule allow.
+- **These rules of this skill still hold during maintenance:** never delete, never send a communication, never read an off-limits path, never print a secret, no visible browser or computer-use, and nothing that can raise a permission prompt. Nothing is committed, pushed or deployed unless a maintenance skill does so under its own rules. No scheduled task is started, created, enabled, disabled or deleted. This skill's own files are never edited; a problem found in them is a friction note. If a step needs one of these, skip that step and report it.
+- **With `work` in the invocation,** include the user's work skills, tasks and repos. Not otherwise.
+- **One short report,** `maintenance/README.md` in the run folder, in the format `reference/maintenance.md` gives: every file changed outside the run folder, at most ten findings waiting for the user, what was checked and clean, what was not checked, and where maintenance stopped. Every other finding goes in `maintenance/all-findings.md`. The report does not count toward the five. The morning page links to it in one line and the morning message says what was changed.
+- **When it stops.** Whichever comes first: the weekly limit is used (edits end at 95%, read-only review runs to 100%); the weekly reset is near (the times in "Budget and models"); or the last hour before the user is likely to be up (step 7 of "How to run the night"). If it stopped for the morning with budget left and the weekly reset still ahead, the morning message gives the weekly percent used and says that replying "keep going" resumes maintenance. `no maintenance` in the invocation skips all of it.
 
 ## How to run the night
 
@@ -164,19 +187,19 @@ The run exists partly to use limits that are about to reset, so read them and pl
    - Confirm every negative finding a second way. Anything an item calls dead, broken, missing, wrong or unanswered is rechecked with a different tool before it goes on the page (for a link: curl, then a real browser through `_tools/cdp.mjs`), and the page says how it was checked. A failure in the checking script is reported as the script's failure, and "could not check" is kept apart from "is broken". The first run's link check called two working sites dead, and the user's reaction was that they need to be able to trust the data they get.
    - Cut it down. The user found the first run's briefs overwhelming because they were so content-dense. Anything they will read or print holds only what they will use in the moment, in type they can read comfortably; the supporting detail goes in a separate file. Do not add a section because it could be relevant, and check whether the user already has their own version of the thing. The ledger's "What the user has said about how items should be" section has their words.
 4. **Keep the index true:** `python3 _tools/set_status.py <run folder> "<item title>" ok|warn|wip "<note>"` after each verification, and a dated line in `PROGRESS.md`.
-5. **Carrying on after a limit.** Agent completions wake the main thread, which is the main way the run continues. As a backstop, schedule one-shot check-ins a few minutes after each reset time, each telling the session to read `PROGRESS.md` and relaunch anything that died. Do not rely on them: on the first run none fired. If an agent died at a limit, its folder has no `README.md`; relaunch it from its brief with "continue from the files already there".
-6. **Maintenance, if budget is left.** When every item is verified, follow "Maintenance with what is left".
-7. **Do not start what cannot finish.** In the last hour before the user is likely to be up, verify and write up; start nothing new.
+5. **Carrying on after a limit.** Agent completions wake the main thread, which is the main way the run continues. As a backstop, schedule one-shot check-ins a few minutes after each 5-hour reset that comes before the weekly reset, each telling the session to read `PROGRESS.md` and relaunch anything that died. Schedule none for after the weekly reset. Do not rely on them: on the first run none fired. If an agent died at a limit, its folder has no `README.md`; relaunch it from its brief with "continue from the files already there".
+6. **Maintenance, with all the budget that is left.** When every item is verified, follow "Maintenance with what is left" and keep going down its list until a stop is reached. Do not end the run early because the maintenance skills have finished, and do not run past the weekly reset.
+7. **Do not start what cannot finish.** In the last hour before the user is likely to be up, verify and write up; start nothing new, maintenance agents included. When the weekly reset comes before then, its times in "Budget and models" apply instead.
 
 ## Morning hand-off
 
-In this order:
+Do it at whichever of these comes first: the weekly limit reaches 95%, 45 minutes before the weekly reset, or the last hour before the user is likely to be up. In this order:
 
 - Bring `index.html` up to date: every item `ok`, `warn` with the caveat, or `wip` with how far it got.
 - If preflight started `caffeinate`, stop it.
 - Write `RECORD.md` at the top of the run folder, following `reference/record-template.md`: the run's facts, then one section per item with what it is, where it was delivered, the state it was delivered in, where it is now, and "not yet reviewed" for the user's reaction. This is the lasting record of the session. It stays in the run folder whatever happens to the items later.
-- Add the run to `<SURPRISES>/ledger.md`: the run's folder name, then one line per item (title, a phrase on what it is, "not yet reviewed"). The ledger is the short list the next run reads first; the detail lives in `RECORD.md`. The ledger and the improvement log are the only things this skill itself writes outside the run folder; what the maintenance skills changed is listed in `maintenance/README.md` and under "Maintenance" in `RECORD.md`.
-- Open `index.html` for the user, then one short chat message: what is ready, caveats that change what they should do, anything that failed or was skipped, and what was not verified. No claim that was not checked.
+- Add the run to `<SURPRISES>/ledger.md`: the run's folder name, then one line per item (title, a phrase on what it is, "not yet reviewed"). The ledger is the short list the next run reads first; the detail lives in `RECORD.md`. The ledger, the maintenance ledger (`maintenance-ledger.md` in the same folder) and the improvement log are the only things this skill writes outside the run folder apart from maintenance fixes; what maintenance changed is listed in `maintenance/README.md` and under "Maintenance" in `RECORD.md`.
+- Open `index.html` for the user, then one short chat message: what is ready, caveats that change what they should do, anything that failed or was skipped, and what was not verified. No claim that was not checked. If maintenance stopped for the morning with budget left and the weekly reset still ahead, give the weekly percent used and say that "keep going" resumes it. Do not offer that when the run ended for the weekly reset.
 
 ## After the run: reviews, updates and moves
 
@@ -189,6 +212,8 @@ The user goes through the items afterwards, one at a time, in this session or a 
 - **A move:** move it, then set "Where it is now" to the full new path, add a dated "Since then" line, fix the item's link in the run's `index.html`, and sweep for other references to the old path.
 - **A deletion:** at the user's request only, and to the Trash. Set "Where it is now" to "deleted" with the date, and say why under "Since then".
 - **A move of the whole run folder:** update the "This folder" line, and the folder name in the ledger if it changed.
+- **A maintenance finding the user decides:** if they approve it, make the change and take it out of "Open" in `maintenance-ledger.md`. If they decline it, move it to "Declined" there with their reason, so no later run raises it. If they undo a fix the run applied, record that under "Declined" too.
+- **"Keep going"** after a morning hand-off: resume "Maintenance with what is left" where `maintenance/README.md` says it stopped, under the same rules and stops, then bring the report and `RECORD.md` up to date. If the weekly limit has reset since the hand-off, say that carrying on would spend the new week's budget and wait for the user's answer.
 
 A `CLAUDE.md` in `<SURPRISES>` can tell any session opened in that folder to do the same.
 
@@ -198,6 +223,8 @@ A `CLAUDE.md` in `<SURPRISES>` can tell any session opened in that folder to do 
 |---|---|
 | Rules every agent reads | `reference/agent-rules.md` (copied to the run folder as `RULES.md`) |
 | Data sources and how to read each | `reference/data-sources.md` |
+| Maintenance: order of work, checks, the safe-fix rule, report format | `reference/maintenance.md` (copied to the run folder as `MAINTENANCE.md`) |
+| What maintenance has checked, and its open and declined findings | `<SURPRISES>/maintenance-ledger.md` |
 | Headless Chrome driver, style check, index status setter, index template | `scripts/` |
 | The record of one run: every item, where it is now, what changed, the user's reaction | `RECORD.md` in that run's folder (format in `reference/record-template.md`) |
 | The short list across all runs: one line per item, reactions, do-not-repeat list, idea bank | `<SURPRISES>/ledger.md` |
@@ -206,7 +233,7 @@ A `CLAUDE.md` in `<SURPRISES>` can tell any session opened in that folder to do 
 
 ## Reflect and improve (SUGGEST ONLY)
 
-Last step of every run, after the morning message. It also runs when a run fails, stalls or is cut short; those runs matter most.
+Last step of every run, after the morning message. On a night that ends at the weekly reset it is done before the reset, as part of the hand-off. It also runs when a run fails, stalls or is cut short; those runs matter most.
 
 **This skill never edits itself.** It does not change its own `SKILL.md`, its rules, its budget thresholds, its model table, its reference files or its scripts. It writes suggestions to a log that the user reviews.
 
@@ -227,6 +254,8 @@ Add a dated entry of one to three lines on what went wrong or wasted effort. Thi
 - Verification: errors the second pass caught, and errors the user found that it missed.
 - Rules: anything that came close to a rule in "Rules for the whole run", and any rule that blocked something the user would have wanted.
 - The mix: too many items, too few, items that overlapped something the user already has.
+- Maintenance: how far down the list the night got, what the second pass restored, any fix the user undid, and whether the report was short enough for them to read.
+- The weekly reset: whether the timers fired, when the last agent stopped, and whether anything was spent after the reset.
 - An agent blocked from writing a file, and anything left for the main thread to save.
 
 "No notable friction" is a valid entry.

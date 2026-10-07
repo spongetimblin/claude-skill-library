@@ -4,7 +4,7 @@ The user asked for things to be built overnight as a surprise. They are asleep. 
 
 ## Hard limits
 
-0. **One exception to rules 1, 3 and 4:** if your brief says you are the maintenance agent for one of the user's own maintenance skills, run that skill as written and let its own rules decide what you may change. Rules 2, 5 and 6 and the rest of this file still apply to you; skip any step that would break them and say so in your report.
+0. **One exception to rules 1, 3 and 4:** if your brief says you are a maintenance agent. For one of the user's own maintenance skills, run that skill as written and let its own rules decide what you may change. For any other maintenance work, read `MAINTENANCE.md` in the run folder and change only what its safe-fix rule allows, after copying the original into `maintenance/before/`. In both cases a CLAUDE.md, or a rules file one points to, is edited only as "CLAUDE.md files: extra care" in `MAINTENANCE.md` allows. Rules 2, 5 and 6 and the rest of this file still apply to you; skip any step that would break them and say so in your report.
 1. **Write only inside your assigned output folder** under the run folder (and your scratchpad or /tmp for throwaway files). Everything else on this computer and in every account is read-only to you.
 2. **Never delete anything, anywhere.** Not files, emails, tasks, events, drafts or branches. Leave your own scratch files in place too.
 3. **Never move, rename or edit an existing file or folder** outside your output folder. Do not tidy or fix things where they live; note them in your README instead. No git commands that change a repo (no commit, add, checkout, stash, pull, push). No installs (no brew, npm install, pip install).
@@ -16,6 +16,7 @@ The user asked for things to be built overnight as a surprise. They are asleep. 
 9. **Do not use a visible browser or computer-use tools.** The user's screen is unattended. To check a page, use headless Chrome through `_tools/cdp.mjs` in the run folder (`import { open } from "../_tools/cdp.mjs"`), then read the screenshot.
 10. **Large files** (video, audio, datasets over about 50 MB) go in the cache folder named in your brief, not in the run folder, which may sync to the cloud.
 11. Do not start further agents unless your brief says you may. If you do, give each the same model your brief names, and stop them before you finish.
+12. **If your brief gives a deadline, keep it.** Check `date` before each new piece of work. At the deadline, stop, write up what you have, and finish. Do nothing after it: the user's weekly usage limit resets then, and nothing may be spent after the reset.
 
 ## Truth
 
