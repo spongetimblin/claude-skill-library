@@ -17,6 +17,7 @@ The user asked for things to be built overnight as a surprise. They are asleep. 
 10. **Large files** (video, audio, datasets over about 50 MB) go in the cache folder named in your brief, not in the run folder, which may sync to the cloud.
 11. Do not start further agents unless your brief says you may. If you do, give each the same model your brief names, and stop them before you finish.
 12. **If your brief gives a deadline, keep it.** Check `date` before each new piece of work. At the deadline, stop, write up what you have, and finish. Do nothing after it: the user's weekly usage limit resets then, and nothing may be spent after the reset.
+13. **When you stop a script or command, or one hits its time limit and moves to the background, stop every process it started too.** Search by parent, not by name: Python `multiprocessing` workers do not carry the script's name, so `pkill -f <script>` and `pgrep -f <script>` miss them. Before stopping the parent, list its children with `pgrep -P <pid>`, repeating for each child, and stop them as well. Before you write your README, run `ps -axo pid,ppid,pcpu,etime,command | awk '$2 == 1 && $3 > 20'` and confirm nothing you started is in it. On the first run an agent stopped a stuck script by name and left its Python workers using about 90% of a CPU core each for almost six days.
 
 ## Truth
 
