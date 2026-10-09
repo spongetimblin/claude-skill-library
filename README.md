@@ -18,7 +18,7 @@ Copy the skill's folder into `~/.claude/skills/` (so `~/.claude/skills/search/SK
 | [`open-in-chrome`](skills/open-in-chrome/) | Opens the home page of the project you are working in, or a page you name, in Google Chrome as a local file. For static sites, on macOS. | copy of the skill I use, with personal details replaced (2026-10-09) |
 | [`search`](skills/search/) | Search your past Claude sessions by what was said in them: Claude Code, Cowork and exported Claude Chat conversations, with ranking, related-word search and title browsing. | exact copy of the skill I use (2026-10-09) |
 | [`sessions`](skills/sessions/) | Lists your Claude Code desktop sessions by topic, using the emoji at the start of each title or the session's folder, and opens one. | exact copy of the skill I use (2026-10-09) |
-| [`surprise`](skills/surprise/) | An overnight run that builds a few things you did not ask for and leaves them in a dated folder, then uses the rest of your weekly usage to check and maintain what you already have, with strict rules about what it may touch. | written by hand from the skill I use, with personal details removed (2026-10-07) |
+| [`surprise`](skills/surprise/) | An overnight run that builds a few things you did not ask for and leaves them in a dated folder, then uses the rest of your weekly usage to check and maintain what you already have, with strict rules about what it may touch. | written by hand from the skill I use, with personal details removed (2026-10-09) |
 | [`transcript-path`](skills/transcript-path/) | Replies with the full path of the current session's transcript file, ready to copy. | copy of the skill I use, with personal details replaced (2026-10-09) |
 <!-- catalog:end -->
 

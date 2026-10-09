@@ -8,7 +8,7 @@ To make maintenance report-only, write that here, and treat every "apply" below 
 
 ## The order of work
 
-The list order is the priority when budget is short. One agent per asset, up to four agents at a time below 90% of the weekly limit and one at a time from 90%, never two on the same asset. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
+The list order is the priority when budget is short. One agent per asset, never two on the same asset. How many run at once is set by the pace rule in "Budget and models" in `SKILL.md`: at most four agents that may edit at a time, and as many read-only agents as the pace needs. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
 
 1. **The maintenance skills named in the Setup section of `SKILL.md`,** as written.
 2. **Whatever those skills skipped as unchanged:** run them again, naming what was skipped.
@@ -102,7 +102,7 @@ When steps 1 to 7 are done and budget is left:
 2. Turn the highest-ranked open findings into patch files in `maintenance/patches/`, each with the command that shows the problem and its output after the patch is applied to a copy.
 3. Review one asset at a time in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, and wording that no longer matches what the thing does. Findings and patches only.
 
-Repeat step 3 until a stop. It is the only maintenance work allowed after the hand-off, and each agent doing it adds its findings to `maintenance/all-findings.md` as it finds them, so that being cut off loses nothing. If a whole round of it turns up nothing new, stop and say so in the report.
+Repeat step 3 until a stop. It is the only maintenance work allowed after the hand-off, and each agent doing it adds its findings to `maintenance/all-findings.md` as it finds them, so that being cut off loses nothing. If a whole round of it turns up nothing new, turn what is left to checking what exists: independent verifiers that try to disprove the serious findings from primary evidence, a code review of every patch that changes behavior, and reviews of code no agent has read yet. Stop only at a stop below.
 
 ## When it stops
 
@@ -110,7 +110,7 @@ The exact lines and times are in "Budget and models" in `SKILL.md`. In short, wh
 
 - **The weekly limit is used.** At 95%, start no new agent that may edit; every edit, this report and the hand-off are finished by 97%; read-only review runs on to 100%.
 - **The weekly reset is near.** No new editing agent in the last 60 minutes before it, hand-off at 45 minutes before, every agent stopped at 10 minutes before. Nothing is spent after the reset.
-- **The last hour before the user is likely to be up,** when the weekly reset is not that night. Start no new agent then; let the running ones finish and write the report.
+- **The last hour before the user is likely to be up.** Start no new agent that may edit, and write the report. Read-only review keeps going at the pace until the limit is used or until 10 minutes before the weekly reset.
 
 ## The maintenance ledger
 
