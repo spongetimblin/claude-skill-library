@@ -117,7 +117,8 @@ The exact lines and times are in "Budget and models" in `SKILL.md`. In short, wh
 
 - **The weekly limit is used.** At 95%, start no new agent that may edit; every edit, this report and the hand-off are finished by 97%; read-only review runs on to 100%.
 - **The weekly reset is near.** No new editing agent in the last 60 minutes before it, hand-off at 45 minutes before, every agent stopped at 10 minutes before. Nothing is spent after the reset.
-- **The last hour before the user is likely to be up.** Start no new agent that may edit, and write the report. Read-only review keeps going at the pace until the limit is used or until 10 minutes before the weekly reset.
+
+The user's wake time is not a stop.
 
 ## The maintenance ledger
 
