@@ -21,7 +21,9 @@ The list order is the priority when budget is short. One agent per asset, never 
 
 Step 1 follows those skills' own rules. Steps 2 to 8 follow this file. "CLAUDE.md files: extra care" below applies in every step, step 1 included. Within steps 3 to 6, take the asset checked longest ago first, going by the maintenance ledger.
 
-**Left out of every step:** the off-limits paths from the Setup section; any folder the user has marked as archived or obsolete; `node_modules`, `venv`, build output and vendored code; this skill's own folder (a problem found in the surprise skill is a friction note in its improvement log). Without `work` in the invocation, also the user's work skills, tasks, repos and drives.
+**Left out of every step:** the off-limits paths from the Setup section; any folder the user has marked as archived or obsolete; `node_modules`, `venv`, build output and vendored code; this skill's own folder (a problem found in the surprise skill is a friction note in its improvement log). Also, in every run: the user's work skills, tasks, repos, drives and exported work chats. Work is out of scope and no option turns it on. Never run a maintenance skill that covers work.
+
+**A credentials check is scoped before it starts.** It covers only the assets in the list above (the apps, skills, tasks, CLAUDE.md files and site repos), and its brief names them. It reports a location and a kind, never a value, and it compares no values. It does not read the user's personal records, session transcripts or chat exports. Before reporting a credential, read the file's own notes: one marked as kept on purpose, such as a demo password, is not a finding. On the second run a sweep was first briefed across the user's whole cloud drive, Documents, Desktop and Downloads, and it reported credentials they did not want raised.
 
 ## CLAUDE.md files: extra care (every step)
 
@@ -100,9 +102,14 @@ When steps 1 to 7 are done and budget is left:
 
 1. An agent that has not read the first agents' notes rechecks every change the night made against the safe-fix rule. A change that fails it is restored from `maintenance/before/` and reported.
 2. Turn the highest-ranked open findings into patch files in `maintenance/patches/`, each with the command that shows the problem and its output after the patch is applied to a copy.
-3. Review one asset at a time in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, and wording that no longer matches what the thing does. Findings and patches only.
+3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, and wording that no longer matches what the thing does. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
+4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated.
+5. **Review every patch that changes behavior.** A second agent reads each one against the code and applies it to a copy. A patch that is not sound is revised or withdrawn. On the second run, 117 were reviewed and 6 revised.
+6. **Write `maintenance/only-you-can-check.md`:** one page of what only the user can check, such as anything on a phone, anything to listen to, and anything behind a sign-in.
 
-Repeat step 3 until a stop. It is the only maintenance work allowed after the hand-off, and each agent doing it adds its findings to `maintenance/all-findings.md` as it finds them, so that being cut off loses nothing. If a whole round of it turns up nothing new, turn what is left to checking what exists: independent verifiers that try to disprove the serious findings from primary evidence, a code review of every patch that changes behavior, and reviews of code no agent has read yet. Stop only at a stop below.
+Steps 3 to 6 are the only maintenance work allowed after the hand-off. Each agent doing them adds its findings to `maintenance/all-findings.md` as it finds them, so that being cut off loses nothing.
+
+**Do not pile up findings.** The second run produced 580 findings and 168 patches, and the user, going through them, felt overwhelmed by the detail. Once every asset has had one deep review in this run, start no second round of reviews while any of the following is left, in this order: steps 4 and 5 for everything found so far; re-checking the open findings already in the maintenance ledger from earlier runs, and marking the ones that are no longer true; reviews of code no agent has read yet. Only when all of that is done does a second round of step 3 start. Stop only at a stop below.
 
 ## When it stops
 

@@ -2,7 +2,7 @@
 
 Where to learn what the user would like, and how to read each source without changing it or raising a prompt. Fill this in for the user. The original skill listed about twenty sources; the rows below show the shape, with the kinds of source that mattered most on its first run.
 
-Rules that apply to every row: read-only, never through a visible browser after the user has gone to bed, and anything that raises a permission prompt is tried once in preflight or skipped.
+Rules that apply to every row: read-only, never through a visible browser after the user has gone to bed, and anything that raises a permission prompt is tried once in preflight or skipped. Work files, tools and accounts are not sources: the user's job is out of scope in every run.
 
 ## Sources the user named
 

@@ -29,6 +29,7 @@ Run it in Bypass permissions mode, or the first permission prompt stalls the who
 | `reference/agent-rules.md` | The rules every agent reads first (copied into each run as `RULES.md`). |
 | `reference/data-sources.md` | A template for where to learn what you would like. |
 | `reference/maintenance.md` | What maintenance checks and in what order, the safe-fix rule, the stricter rule for CLAUDE.md files, and when it stops. |
+| `reference/read-only-review.md` | The brief every read-only review agent reads first (copied into each run as `_briefs/read-only-review.md`). |
 | `reference/record-template.md` | The format of each run's `RECORD.md`. |
 | `scripts/cdp.mjs` | A small headless Chrome driver over the DevTools protocol, for checking pages without touching your screen. Needs Node 22+ and Google Chrome. |
 | `scripts/set_status.py` | Updates an item's status on the morning page. |
