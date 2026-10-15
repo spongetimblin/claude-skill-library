@@ -10,7 +10,7 @@ To make maintenance report-only, write that here, and treat every "apply" below 
 
 The list order is the priority when budget is short. One agent per asset, never two on the same asset. How many run at once is set by the pace rule in "Budget and models" in `SKILL.md`: at most four agents that may edit at a time, and as many read-only agents as the pace needs. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
 
-1. **The maintenance skills named in the Setup section of `SKILL.md`,** as written.
+1. **The maintenance skills named in the Setup section of `SKILL.md`,** as written. A log or file whose own rules keep a change for a session with the user present is left as it is: overnight the skill records its recommended answer and changes nothing, and that is not a failure.
 2. **Whatever those skills skipped as unchanged:** run them again, naming what was skipped.
 3. **CLAUDE.md files:** `~/.claude/CLAUDE.md`, any rules files it points to, and each project's CLAUDE.md.
 4. **Skills:** each folder in `~/.claude/skills`.
@@ -103,7 +103,7 @@ When steps 1 to 7 are done and budget is left:
 1. An agent that has not read the first agents' notes rechecks every change the night made against the safe-fix rule. A change that fails it is restored from `maintenance/before/` and reported.
 2. Turn the highest-ranked open findings into patch files in `maintenance/patches/`, each with the command that shows the problem and its output after the patch is applied to a copy.
 3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, and wording that no longer matches what the thing does. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
-4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated.
+4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated. A finding that calls something broken is reproduced from the thing itself when a read-only check can do it (run the failing command, load the page on the local stack), not reasoned from the code; "probably broken" is not a finding. One such finding on the second run could have been reproduced overnight and was not.
 5. **Review every patch that changes behavior.** A second agent reads each one against the code and applies it to a copy. A patch that is not sound is revised or withdrawn. On the second run, 117 were reviewed and 6 revised.
 6. **Write `maintenance/only-you-can-check.md`:** one page of what only the user can check, such as anything on a phone, anything to listen to, and anything behind a sign-in.
 
