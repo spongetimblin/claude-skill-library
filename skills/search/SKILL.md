@@ -93,7 +93,13 @@ Reply with what the script printed, from its first line to the last numbered res
 
 Only when the user asks. Take the key or id from the IDS block of the list you last printed, never from memory.
 
-- **"open 2", for a Claude Code result with `open=` in the IDS block.** Run `python3 ~/.claude/skills/search/scripts/search.py --open 'local_…'`. The app switches to that session, and this session keeps running. Reply with one sentence naming the session that was opened.
+- **"open 2", for a Claude Code result with `open=` in the IDS block.** Run `python3 ~/.claude/skills/search/scripts/search.py --open 'local_…'`. The app switches to that session, and this session keeps running. Then move the session to the user's Active group in the sidebar, unless it is pinned:
+  1. Load `mcp__ccd_session_mgmt__get_session`, `mcp__ccd_sidebar__list_groups` and `mcp__ccd_sidebar__move_sessions` in one ToolSearch call.
+  2. Call `get_session` with the `local_…` id. If `pinned` is true, leave the session where it is: moving a pinned session into a group removes its pin. A missing `pinned` means not pinned. If its group's name already contains "Active", leave it too.
+  3. Call `list_groups` and find the group whose name contains "Active". Both accounts have one named "🟢 Active"; match by name, since group ids differ between accounts. Call `move_sessions` with that group's id and the `local_…` id. Move it from Ungrouped or from any other group, such as Paused or Waiting.
+  4. Call `get_session` again and check that its group is now Active.
+
+  Reply with one sentence naming the session that was opened and saying it is now in Active, or that it stayed where it was because it is pinned. If no group's name contains "Active", a call fails, or step 4 shows the session didn't move, leave it and say so in a second sentence. Don't create the group.
 - **A Claude Code result with no `open=`.** If its line says "open it in the ...", it is held by another copy of the app or another account, and opens only from there: say which. If no result in the list has `open=`, opening is not set up on this computer (README.md says what it needs), or this session is not running in the desktop app. Say so; the result can still be read.
 - **A Chat result.** Its title is a link to the chat on claude.ai. It opens only in a browser signed in to the account that holds the chat.
 - **A Cowork result.** It cannot be opened from here. It can be read.

@@ -139,6 +139,8 @@ Request an export on claude.ai (Settings, then Privacy, then Export data), and u
 
 Without that script, `--open` says so and exits with code 1, result lists carry no `open=` marks, and results can still be read with `--show`. Even with it, a session opens only from inside the desktop app, and only in the copy of the app and the account that holds it.
 
+After a session opens, Claude also moves it to the sidebar group whose name contains "Active" (SKILL.md, step 5). The script doesn't do this: only Claude can move sessions between groups, through the app's sidebar tools. A pinned session stays where it is, because moving it into a group would remove its pin. So does any session on an account with no such group.
+
 ## Command reference
 
 ```
