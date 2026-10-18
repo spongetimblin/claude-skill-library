@@ -433,14 +433,25 @@ function attachToEvent_(req) {
   }
   const file = DriveApp.getFileById(req.file_id);
 
-  (req.share_with || []).forEach(function (email) {
-    file.addViewer(email);
-  });
-
+  // Look the event up before sharing, so a wrong event id shares nothing.
   const event = Calendar.Events.get(req.calendar_id, req.event_id);
+
+  // Sharing is logged by itself, before it happens, so it is on record even
+  // when the file is already attached or a later step fails.
+  const shareWith = req.share_with || [];
+  if (shareWith.length) {
+    audit_('share_file', {
+      file: file.getName(), file_id: req.file_id, shared_with: shareWith,
+      calendar_id: req.calendar_id, event_id: req.event_id,
+    });
+    shareWith.forEach(function (email) {
+      file.addViewer(email);
+    });
+  }
+
   const attachments = event.attachments || [];
   const fileUrl = 'https://drive.google.com/open?id=' + req.file_id;
-  if (attachments.some(function (a) { return a.fileUrl === fileUrl; })) {
+  if (attachments.some(function (a) { return a.fileUrl === fileUrl || a.fileId === req.file_id; })) {
     return { event_id: req.event_id, already_attached: true, attachment_count: attachments.length };
   }
   attachments.push({
@@ -539,7 +550,9 @@ function docReplaceText_(req) {
   if (req.expect_count !== undefined && req.expect_count !== null && Number(req.expect_count) !== count) {
     throw new Error('found ' + count + ' occurrence(s) but expect_count is ' + req.expect_count + ' — nothing changed');
   }
-  body.replaceText(pattern, String(req.replace));
+  // replaceText treats the replacement like a regex replacement string, so a literal
+  // '$' or '\' in req.replace must be escaped or it is read as a group reference.
+  body.replaceText(pattern, String(req.replace).replace(/[\\$]/g, '\\$&'));
   audit_('doc_replace_text', { doc: doc.getName(), doc_id: doc.getId(), find: String(req.find).slice(0, 500), replace: String(req.replace).slice(0, 500), count: count });
   return { doc: doc.getName(), replaced: count };
 }
@@ -644,9 +657,10 @@ function docSetTextStyle_(req) {
 }
 
 /**
- * doc_set_link — { doc_id, find, url, expect_count? }
+ * doc_set_link — { doc_id, find, url, expect_count?, foreground_color? }
  * Sets (or, with url: null, removes) the hyperlink on every literal occurrence
  * of `find` in the body. expect_count refuses if the occurrence count differs.
+ * foreground_color (for example '#1155cc') colors only the matched text.
  */
 function docSetLink_(req) {
   const doc = getDoc_(req);
@@ -667,8 +681,9 @@ function docSetLink_(req) {
     const a = h.getStartOffset(), b = h.getEndOffsetInclusive();
     before.push(t.getLinkUrl(a));
     t.setLinkUrl(a, b, req.url);
+    if (typeof req.foreground_color === 'string') t.setForegroundColor(a, b, req.foreground_color);
   });
-  audit_('doc_set_link', { doc: doc.getName(), doc_id: doc.getId(), find: String(req.find).slice(0, 300), old_urls: before, new_url: req.url, count: hits.length });
+  audit_('doc_set_link', { doc: doc.getName(), doc_id: doc.getId(), find: String(req.find).slice(0, 300), old_urls: before, new_url: req.url, foreground_color: req.foreground_color || null, count: hits.length });
   return { doc: doc.getName(), updated: hits.length, old_urls: before, new_url: req.url };
 }
 

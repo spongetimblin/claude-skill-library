@@ -7,7 +7,7 @@ It comes from the article "Claude Workflow Tips" at https://chadtimbl.in/writing
 ## Install
 
 1. Copy the `surprise` folder to `~/.claude/skills/surprise/`.
-2. Open `SKILL.md` and fill in the "Setup" table at the top: where runs go, where large files go, what is off limits, which of your own maintenance skills may apply fixes, where your apps and websites live, and your house style for writing.
+2. Open `SKILL.md` and fill in the "Setup" table at the top: where runs go, where large files go, what is off limits, which of your own maintenance skills may apply fixes, where your apps and websites live, where each run's to-do goes, and your house style for writing.
 3. Fill in `reference/data-sources.md` for your own files, apps and connectors, and the "Truth" and "Writing style" sections of `reference/agent-rules.md`. Put your app and website folders into "The order of work" in `reference/maintenance.md`.
 4. Create the Surprises folder you named, with an empty `ledger.md` in it.
 
@@ -36,4 +36,4 @@ Run it in Bypass permissions mode, or the first permission prompt stalls the who
 | `scripts/stylecheck.py` | Counts em dashes and curly quotes in a folder. Change or drop it to match your own style. |
 | `scripts/index-template.html` | The morning page. |
 
-No warranty. It has run twice for its author, and the lessons from both runs are written into it. The rules for pacing a run to the 5-hour usage window were added after the second run, on 2026-10-09, and have not been through a run yet.
+No warranty. Its author runs it regularly, and the lessons from each run are written into it.

@@ -43,6 +43,7 @@ The token comes from the environment. It is never printed and never placed in
 a process argument (a curl command line shows it in the process list).
 """
 
+import http.client
 import json
 import os
 import socket
@@ -135,7 +136,7 @@ def _attempt(url, body, post_timeout, reply_timeout):
                                  headers={"Content-Type": "application/json"})
     try:
         status, location, raw = _request(req, post_timeout)
-    except (OSError, urllib.error.URLError) as e:
+    except (OSError, urllib.error.URLError, http.client.HTTPException) as e:
         state = "not_sent" if _not_sent(e) else "unknown"
         return state, None, "no response to the request after %.0fs (%s)" % (time.time() - t0, type(e).__name__)
 
@@ -150,7 +151,7 @@ def _attempt(url, body, post_timeout, reply_timeout):
     host = urllib.parse.urlparse(location).netloc
     try:
         status, _, raw = _request(urllib.request.Request(location), reply_timeout)
-    except (OSError, urllib.error.URLError) as e:
+    except (OSError, urllib.error.URLError, http.client.HTTPException) as e:
         return "lost", None, "the op ran, but its reply from %s timed out after %.0fs" % (host, time.time() - t1)
     data = _parse(raw) if status == 200 else None
     if data is not None:
@@ -180,10 +181,17 @@ def call(op, attempts=ATTEMPTS, post_timeout=POST_TIMEOUT, reply_timeout=None,
         reply_timeout = REPLY_TIMEOUT_SAFE if safe else REPLY_TIMEOUT_UNSAFE
 
     detail = ""
+    sent = False
     for n in range(1, attempts + 1):
         state, data, detail = _attempt(url, body, post_timeout, reply_timeout)
         if state == "ok":
             if not data.get("ok"):
+                if sent:
+                    # e.g. set_cell or doc_replace_paragraph whose first send changed
+                    # the text its own row_match or contains guard looks for.
+                    raise ApiError("%s (this was attempt %d: an earlier attempt was sent and its reply was lost, "
+                                   "so the change may already be in place; read it back before treating this as a failure)"
+                                   % (data.get("error"), n))
                 raise ApiError(str(data.get("error")))
             if n > 1:
                 data["attempts"] = n
@@ -193,6 +201,7 @@ def call(op, attempts=ATTEMPTS, post_timeout=POST_TIMEOUT, reply_timeout=None,
                 "%s: %s. This op is not safe to resend, so nothing was resent. "
                 "The change may or may not have been made: read the sheet or doc back before sending it again."
                 % (op, detail))
+        sent = sent or state != "not_sent"
         if n < attempts:
             wait = BACKOFF[min(n - 1, len(BACKOFF) - 1)]
             sys.stderr.write("[gws_call] %s: %s; attempt %d of %d in %ds\n" % (op, detail, n + 1, attempts, wait))
@@ -226,7 +235,16 @@ def main(argv):
         except ValueError as e:
             sys.stderr.write("batch input is not valid JSON: %s\n" % e)
             return 4
-        defaults, steps = ({}, spec) if isinstance(spec, list) else (spec.get("defaults", {}), spec.get("steps", []))
+        if isinstance(spec, list):
+            defaults, steps = {}, spec
+        elif isinstance(spec, dict) and set(spec) <= {"defaults", "steps"}:
+            defaults, steps = spec.get("defaults", {}), spec.get("steps")
+        else:
+            defaults, steps = {}, None
+        if not isinstance(steps, list) or not steps or not all(isinstance(s, dict) for s in steps) \
+                or not isinstance(defaults, dict):
+            sys.stderr.write('batch input must be a non-empty list of steps, or {"defaults": {...}, "steps": [...]}\n')
+            return 4
         for i, step in enumerate(steps, 1):
             params = dict(defaults)
             params.update(step)

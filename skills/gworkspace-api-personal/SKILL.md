@@ -100,7 +100,7 @@ Every doc op takes `doc_id` (the long id from the Doc's URL). Elements are addre
 | `doc_insert_paragraph_after` | insert a new paragraph after the PARAGRAPH at `index` (guarded by `contains`), copying its attributes |
 | `doc_delete_paragraph` | remove the element at `index` (guarded by `contains`); old text goes to the audit log |
 | `doc_set_text_style` | `copy_style_from: <index>` copies a reference element's text attributes (font, size, colour, bold...) and paragraph attributes (spacing, indents, alignment) onto the element at `index` (guarded by `contains`); explicit `bold`, `italic`, `underline`, `foreground_color`, `font_family`, `font_size` apply afterwards. Always run this after `doc_insert_paragraph_after`, pointing at a plain body paragraph. |
-| `doc_set_link` | set the hyperlink (`url`, or `null` to remove) on every literal occurrence of `find`; `expect_count` refuses on a count mismatch |
+| `doc_set_link` | set the hyperlink (`url`, or `null` to remove) on every literal occurrence of `find`; `expect_count` refuses on a count mismatch; `foreground_color` (for example `#1155cc`) colors only the matched text |
 
 `doc_get_text` also accepts `with_links: true` (adds a `links` array, `{text, url}`, per element: the only way to see where a URL's text actually points) and `with_style: true` (adds `style: {paragraph, text}` per element, for comparing an edited paragraph against its neighbours).
 
@@ -109,7 +109,7 @@ Docs caveats, learned on the work twin 2026-09-04 and confirmed here on a throwa
 ## Rules
 
 1. **Read before you write.** `get_headers` (or `read_range`) first for sheets, `doc_get_text` first for docs; never write to a range or element you haven't looked at this session.
-2. **Show the user the proposed write and get his OK** before `write_range`, `clear_range`, or anything that overwrites non-empty cells. `set_cell`/`add_row`/`append_rows` on cells that are empty or expected checklist updates can proceed when the task already authorizes them.
+2. **Show the user the proposed write and get his OK before `clear_range` or any write that overwrites non-empty cells.** A write into empty cells (`write_range`, `set_cell`, `add_row`, `append_rows`, `set_link`, `set_note`) can proceed when the task already authorizes it, as `/cat-food-log` does for the day's row; read the target first so you know the cells are empty.
 3. **Verify after writing**: re-read the range (or check the op's returned `old_value`/`new_value`) and confirm to the user what changed.
 4. Prefer `set_cell`/`add_row` for header-keyed checklist sheets (they validate headers and refuse ambiguity); use `write_range`/`append_rows` for everything else.
 5. Formula guard: values starting with `=` are rejected unless you pass `allow_formulas: true`. Only pass it when a formula is genuinely intended (e.g. `HYPERLINK`).

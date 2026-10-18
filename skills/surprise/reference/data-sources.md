@@ -8,7 +8,7 @@ Rules that apply to every row: read-only, never through a visible browser after 
 
 | Source | How to read it | Notes |
 |---|---|---|
-| Task manager | Its MCP tools or export files | Old tasks and anything filed under "someday" are the best signal of what has been languishing. Never add, edit or complete a task. Some task apps hide repeating tasks from their API; do not report one as missing on the strength of an API read. |
+| Task manager | Its MCP tools or export files | Old tasks and anything filed under "someday" are the best signal of what has been languishing. Never add, edit or complete a task. The one exception is the run's own to-do, created by the main thread at the morning hand-off when the Setup section asks for one (see "Morning hand-off" in `SKILL.md`). Some task apps hide repeating tasks from their API; do not report one as missing on the strength of an API read. |
 | Mail | The mail connector's search and read tools | Preflight: confirm which account the connector is signed into. Search before asking the user anything; the answer is often in a thread. Never send, reply, forward or draft. |
 | Calendar | The calendar connector's list and search tools | Appointments and deadlines in the next two weeks. Never create, change or respond to an event. |
 | Cloud files | The local sync folder | Note which file types are pointers rather than content (a Google Sheet or Doc in a Drive folder is a small JSON file holding an id; read it through the Drive connector instead). |

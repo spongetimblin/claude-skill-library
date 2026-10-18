@@ -23,6 +23,8 @@ Step 1 follows those skills' own rules. Steps 2 to 8 follow this file. "CLAUDE.m
 
 **Left out of every step:** the off-limits paths from the Setup section; any folder the user has marked as archived or obsolete; `node_modules`, `venv`, build output and vendored code; this skill's own folder (a problem found in the surprise skill is a friction note in its improvement log). Also, in every run: the user's work skills, tasks, repos, drives and exported work chats. Work is out of scope and no option turns it on. Never run a maintenance skill that covers work.
 
+**Projects on hold are skipped in every step.** A folder whose CLAUDE.md says it is on hold gets no review, finding, patch or proposal. Don't open it beyond reading that line.
+
 **A credentials check is scoped before it starts.** It covers only the assets in the list above (the apps, skills, tasks, CLAUDE.md files and site repos), and its brief names them. It reports a location and a kind, never a value, and it compares no values. It does not read the user's personal records, session transcripts or chat exports. Before reporting a credential, read the file's own notes: one marked as kept on purpose, such as a demo password, is not a finding. On the second run a sweep was first briefed across the user's whole cloud drive, Documents, Desktop and Downloads, and it reported credentials they did not want raised.
 
 ## CLAUDE.md files: extra care (every step)

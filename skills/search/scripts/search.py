@@ -70,7 +70,7 @@ import re
 import sqlite3
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 HOME = Path.home()
@@ -83,7 +83,7 @@ DEFAULT_INDEX = SKILL_DIR / "data" / "search-index.db"
 # the desktop app. It is optional; without it, results can still be read.
 SESSIONS_SCRIPT = HOME / ".claude" / "skills" / "sessions" / "scripts" / "sessions.py"
 
-SCHEMA = 1
+SCHEMA = 2   # 2: the text typed after a slash command is kept
 DEFAULT_LIMIT = 8
 NEAR_WORDS = 60   # how close together, in words, counts as about the same thing
 STALE_EXPORT_DAYS = 30
@@ -98,6 +98,9 @@ UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 WRAPPED = re.compile(
     r"<(system-reminder|local-command-[a-z-]+|command-[a-z-]+|task-notification)\b[^>]*>.*?</\1>",
     re.S)
+# A slash command is stored as tags too, but its name and the text after it are
+# what the user typed, so those two are kept.
+TYPED = re.compile(r"<command-(name|args)>(.*?)</command-\1>", re.S)
 # Chat tools whose input is a draft Claude wrote, which is worth finding.
 DRAFT_TOOLS = {"artifacts", "create_file", "message_compose_v1"}
 
@@ -316,10 +319,16 @@ FIELDS = ("source", "account", "scope", "title", "folder", "place", "session_id"
           "cli_id", "url", "created", "updated", "archived", "scheduled")
 
 
+def storable(text):
+    """Text SQLite will take. Half of a cut emoji cannot be written as UTF-8."""
+    return text.encode("utf-8", "replace").decode("utf-8") if isinstance(text, str) else text
+
+
 def put(db, key, doc, titles, body=None):
     """Add or replace one session. body=None keeps the text already stored."""
     row = db.execute("SELECT id FROM docs WHERE key=?", (key,)).fetchone()
-    values = [doc.get(f) for f in FIELDS]
+    values = [storable(doc.get(f)) for f in FIELDS]
+    titles, body = storable(titles), storable(body)
     if row is None:
         cur = db.execute(
             f"INSERT INTO docs(key, {', '.join(FIELDS)}, chars) VALUES (?{', ?' * len(FIELDS)}, ?)",
@@ -382,7 +391,8 @@ def said(record):
                  if isinstance(b, dict) and b.get("type") == "text"]
     else:
         return None
-    text = WRAPPED.sub(" ", "\n".join(parts)).strip()
+    text = TYPED.sub(lambda m: " " + m.group(2) + " ", "\n".join(parts))
+    text = WRAPPED.sub(" ", text).strip()
     if not text or (who == "assistant" and text.startswith(RESULT_MARK)):
         return None
     return (USER if who == "user" else CLAUDE) + text
@@ -489,7 +499,8 @@ def index_sessions(db, files, source, transcripts, problems):
             script = rec.with_suffix("") / "audit.jsonl"
             script = script if script.is_file() else None
         body = None
-        if script is not None and (files.changed(script) or had is None):
+        # Also when the app now names another transcript for the session.
+        if script is not None and (files.changed(script) or had is None or cli != (had["cli_id"] or "")):
             read = read_transcript(script)
             body = read[0] if read else None
         if meta is None and body is None:
@@ -497,6 +508,7 @@ def index_sessions(db, files, source, transcripts, problems):
         if meta is None:
             # Only the transcript grew. Everything else about the session stands.
             row = db.execute("SELECT id FROM docs WHERE key=?", (key,)).fetchone()
+            body = storable(body)
             db.execute("UPDATE docs SET chars=? WHERE id=?", (len(body), row["id"]))
             db.execute("UPDATE fts SET body=? WHERE rowid=?", (body, row["id"]))
             continue
@@ -561,8 +573,13 @@ def chat_text(chat):
                 parts.extend(v for v in made.values() if isinstance(v, str) and len(v) > 40)
         if not any(p.strip() for p in parts):
             parts = [m.get("text") or ""]
-        parts.extend(a.get("file_name") or "" for a in m.get("attachments") or []
-                     if isinstance(a, dict))
+        for a in m.get("attachments") or []:
+            if not isinstance(a, dict):
+                continue
+            name = a.get("file_name") or ""
+            parts.append(name)
+            if name in ("", "paste.txt"):     # Chat stores a long paste as an attachment
+                parts.append(a.get("extracted_content") or "")
         text = "\n".join(p for p in parts if p.strip()).strip()
         if text:
             spoken.append((USER if m.get("sender") == "human" else CLAUDE) + text)
@@ -625,11 +642,11 @@ def index_chats(db, files, problems):
             problems.append(f"No Chat exports folder at {base}.")
             continue
         dated = sorted(d for d in base.iterdir() if d.is_dir() and DATED.fullmatch(d.name))
-        if dated:
-            newest[account] = dated[-1].name
         for export in dated:               # oldest first, so that the newest copy wins
             if str(export) in done:
+                newest[account] = export.name
                 continue
+            read, failed = 0, 0
             sizes = {r["key"]: r["chars"] for r in db.execute(
                 "SELECT key, chars FROM docs WHERE source='chat'")}
             for f in sorted(export.rglob("conversations.json")):
@@ -637,16 +654,20 @@ def index_chats(db, files, problems):
                     chats = json.loads(f.read_text(encoding="utf-8"))
                 except (OSError, ValueError) as e:
                     problems.append(f"Could not read {f}: {e}")
+                    failed += 1
                     continue
+                read += 1
                 for chat in chats:
                     uuid = chat.get("uuid")
                     if not uuid:
                         continue
                     key = f"chat:{uuid}"
                     body, count = chat_text(chat)
-                    if count < sizes.get(key, -1):
+                    # The stored size is the length of the text with its speaker marks,
+                    # so compare that, not the bare character count.
+                    if len(body) < sizes.get(key, -1):
                         continue           # this export holds less of the chat
-                    sizes[key] = count
+                    sizes[key] = len(body)
                     title = (chat.get("name") or "").strip() or "(untitled)"
                     put(db, key, {
                         "source": "chat", "account": account,
@@ -657,7 +678,12 @@ def index_chats(db, files, problems):
                         "updated": to_ms(chat.get("updated_at") or chat.get("created_at") or ""),
                         "archived": 0, "scheduled": "",
                     }, title + " / " + (chat.get("summary") or "")[:400], body)
-            done.add(str(export))
+            # An export counts as read only once every conversations.json in it has
+            # been read. A folder that is still empty, or holds a file that is half
+            # copied, is looked at again on the next search.
+            if read and not failed:
+                done.add(str(export))
+                newest[account] = export.name
     if list_changed:
         rows = db.execute("SELECT key, account, session_id FROM docs WHERE source='chat'").fetchall()
         db.executemany("UPDATE docs SET scope=? WHERE key=?",
@@ -781,10 +807,12 @@ def conditions(args, scope):
         values.append(args.source)
     if not args.runs:
         where.append("(d.scheduled IS NULL OR d.scheduled = '')")
-    for flag, test in ((args.since, "d.updated >= ?"), (args.before, "d.created <= ?")):
+    # --before takes in the whole of its day: started before the next day begins.
+    for flag, test, days in ((args.since, "d.updated >= ?", 0), (args.before, "d.created < ?", 1)):
         if flag:
             try:
-                values.append(int(datetime.strptime(flag, "%Y-%m-%d").timestamp() * 1000))
+                start = datetime.strptime(flag, "%Y-%m-%d") + timedelta(days=days)
+                values.append(int(start.timestamp() * 1000))
             except ValueError:
                 print(f'"{flag}" is not a date. Write it as 2026-09-01.')
                 return None
@@ -846,6 +874,16 @@ def search(db, args, problems):
     if built is None:
         return 2
     where, values = built
+    # A word with no letter or digit, such as an emoji, is not in the index: the
+    # tokenizer drops it. Titles are short, so look for it there directly. A word
+    # of plain punctuation ("&", "-", a dash) is still left out, as it always was.
+    import unicodedata
+    for mark in (w.strip() for w in words if w.strip() and not re.search(r"\w", w)):
+        mark = mark.replace("\ufe0f", "").replace("\ufe0e", "")
+        if not any(ord(c) > 127 and unicodedata.category(c)[0] not in "PZ" for c in mark):
+            continue
+        where.append("d.title LIKE ? ESCAPE '\\'")
+        values.append("%" + re.sub(r"([\\%_])", r"\\\1", mark) + "%")
     if query:
         where, values = ["fts MATCH ?"] + where, [query] + values
     if args.source == "chat" and CFG.exports is None:
@@ -956,10 +994,9 @@ def show(db, args):
     if row["url"]:
         print(row["url"])
     print()
-    turns = [t for t in re.split(r"\n\n(?=[▶◀] )", row["body"] or "") if t.strip()]
+    stored = [t for t in re.split(r"\n\n(?=[▶◀] )", row["body"] or "") if t.strip()]
     wanted = [w.lower() for w in args.grep or []]
-    if wanted:
-        turns = [t for t in turns if all(w in t.lower() for w in wanted)]
+    turns = [t for t in stored if all(w in t.lower() for w in wanted)] if wanted else stored
     left = args.max_chars
     for t in turns:
         who = "User" if t.startswith(USER.strip()) else "Claude"
@@ -971,8 +1008,11 @@ def show(db, args):
             break
         print(piece)
         left -= len(piece)
-    if not turns:
+    if not stored:
         print("No conversation text is stored for this one. Only its title can be searched.")
+    elif not turns:
+        print("No turn holds " + " and ".join(f'"{w}"' for w in wanted) + ". Try one word, or a "
+              "shorter form of it: --grep matches the letters as typed, so \"dryers\" misses \"dryer\".")
     return 0
 
 

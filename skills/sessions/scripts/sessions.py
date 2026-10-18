@@ -382,17 +382,27 @@ class Session:
 def load(problems):
     dirs = sorted(d for d in APP_SUPPORT.glob("Claude*/claude-code-sessions/*/*") if d.is_dir())
     sessions, unreadable = [], 0
+    # A session moved to another account folder can leave a stale copy of its
+    # record behind under the same name. Take the newest, as search.py does.
+    newest = {}
     for d in dirs:
         for f in d.glob("local_*.json"):
             try:
-                rec = json.loads(f.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                unreadable += 1
-                continue
-            if isinstance(rec, dict) and rec.get("sessionId"):
-                sessions.append(Session(rec, d))
-            else:
-                unreadable += 1
+                when = f.stat().st_mtime
+            except OSError:
+                when = 0
+            if f.name not in newest or when > newest[f.name][0]:
+                newest[f.name] = (when, d, f)
+    for _, d, f in newest.values():
+        try:
+            rec = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            unreadable += 1
+            continue
+        if isinstance(rec, dict) and rec.get("sessionId"):
+            sessions.append(Session(rec, d))
+        else:
+            unreadable += 1
     if unreadable:
         problems.append(f"{unreadable} session records could not be read and are left out.")
     return sessions
