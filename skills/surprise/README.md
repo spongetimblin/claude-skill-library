@@ -36,4 +36,4 @@ Run it in Bypass permissions mode, or the first permission prompt stalls the who
 | `scripts/stylecheck.py` | Counts em dashes and curly quotes in a folder. Change or drop it to match your own style. |
 | `scripts/index-template.html` | The morning page. |
 
-No warranty. Its author runs it regularly, and the lessons from each run are written into it.
+No warranty. Its author runs it regularly, and the lessons from each run are written into it. The step that adds a to-do for each run was added on 2026-10-17 and has not been through a run yet.
