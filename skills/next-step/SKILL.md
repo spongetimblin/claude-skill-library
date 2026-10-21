@@ -12,7 +12,7 @@ argument-hint: "[task, topic, link, or other context]"
 
 # Next step, one at a time
 
-The user runs this when they want to finish something without holding the whole job in their head. It came from a review of 357 of the author's Claude Code sessions, which found 126 messages asking for this: "tell me exactly what to do", "walk me through it", "clear, concise, sequential steps", "I'm overwhelmed, your messages are too long".
+The user runs this when they want to finish something without holding the whole job in their head.
 
 Context the user gave: $ARGUMENTS
 
