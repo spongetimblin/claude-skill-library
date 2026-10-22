@@ -86,7 +86,7 @@ Add a dated entry of one to three lines that names the audited file and covers w
 
 ### Synthesis
 
-This skill is invoked by hand and runs irregularly, so a weekly Sunday synthesis does not fit. At the start of this step, synthesize when **either** there are 5 or more friction notes since the last synthesis, **or** the last synthesis is more than 30 days old and at least one new note exists.
+This skill is invoked by hand and runs irregularly, so a weekly Sunday synthesis does not fit. At the start of this step, synthesize when **either** there are 5 or more friction notes since the last synthesis, **or** the last synthesis is more than 30 days old and at least one new note exists. With no synthesis yet, the 30 days count from the oldest note.
 
 When it triggers, read the notes since the last synthesis and look for recurring patterns. Before proposing anything, check the log for earlier proposals that were declined. Then add a dated `## Synthesis` entry at the top of the log with a short prioritized list of concrete proposed refinements. Tag each `STATUS: AWAITING REVIEW`. Do not apply any of them.
 
