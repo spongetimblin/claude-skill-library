@@ -83,7 +83,7 @@ DEFAULT_INDEX = SKILL_DIR / "data" / "search-index.db"
 # the desktop app. It is optional; without it, results can still be read.
 SESSIONS_SCRIPT = HOME / ".claude" / "skills" / "sessions" / "scripts" / "sessions.py"
 
-SCHEMA = 2   # 2: the text typed after a slash command is kept
+SCHEMA = 3   # 2: the text typed after a slash command is kept. 3: and messages typed while Claude worked
 DEFAULT_LIMIT = 8
 NEAR_WORDS = 60   # how close together, in words, counts as about the same thing
 STALE_EXPORT_DAYS = 30
@@ -109,6 +109,9 @@ USER, CLAUDE = "▶ ", "◀ "
 # The first words of this script's own output. A reply that relays a result list
 # would otherwise make its session match every word in the titles it listed.
 RESULT_MARK = "Search results for"
+# A session that began with /search. The app titles it after what was searched
+# for, so it would otherwise be listed above the session it found.
+LOOKUP = re.compile(re.escape(USER) + r"/search(\s|$)")
 
 
 # ---------------------------------------------------------------- settings
@@ -379,11 +382,19 @@ class Files:
 def said(record):
     """What the user or Claude said in one transcript record, with its speaker mark."""
     who = record.get("type")
-    if who not in ("user", "assistant"):
+    if who not in ("user", "assistant", "attachment"):
         return None
     if record.get("isMeta") or record.get("isSidechain") or record.get("isCompactSummary"):
         return None
     content = (record.get("message") or {}).get("content")
+    if who == "attachment":
+        # A message typed while Claude is working is stored only as a queued
+        # command. Its other modes are notices, such as a helper agent finishing.
+        queued = record.get("attachment") or {}
+        if not isinstance(queued, dict) or queued.get("type") != "queued_command" \
+                or queued.get("commandMode") != "prompt":
+            return None
+        who, content = "user", queued.get("prompt")
     if isinstance(content, str):
         parts = [content]
     elif isinstance(content, list):
@@ -898,7 +909,8 @@ def search(db, args, problems):
     groups = []
     for source in sources:
         clause = " AND ".join(where + ["d.source = ?"])
-        select = (f"SELECT d.*, {piece} AS piece FROM fts JOIN docs d ON d.id = fts.rowid "
+        select = (f"SELECT d.*, {piece} AS piece, substr(fts.body, 1, 12) AS opening "
+                  "FROM fts JOIN docs d ON d.id = fts.rowid "
                   f"WHERE {clause} ORDER BY {order} LIMIT ?")
         found = db.execute(
             f"SELECT count(*) FROM fts JOIN docs d ON d.id = fts.rowid WHERE {clause}",
@@ -911,6 +923,7 @@ def search(db, args, problems):
             have = {r["id"] for r in rows}
             more = db.execute(select, values + [source, args.limit + len(have)]).fetchall()
             rows += [r for r in more if r["id"] not in have][:args.limit - len(rows)]
+        rows.sort(key=lambda r: LOOKUP.match(r["opening"] or "") is not None)
         groups.append((source, rows, found))
 
     spell = lambda given: ", ".join(f'"{w}"' if " " in w else w for w in given)

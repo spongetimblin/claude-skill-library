@@ -583,7 +583,7 @@ def show_counts(sessions, topics, elsewhere, scoped):
     print()
     print("| Topic | Sessions | Scheduled runs |")
     print("|---|---|---|")
-    order = sorted((k for k in by if k), key=lambda k: -sum(by[k]))
+    order = sorted((k for k in by if k), key=lambda k: (-by[k][0], -by[k][1]))
     for k in order + ([None] if None in by else []):
         print(f"| {name_of(k, topics)} | {by[k][0]} | {by[k][1]} |")
     empty = [name_of(k, topics) for k in topics if k not in by]
