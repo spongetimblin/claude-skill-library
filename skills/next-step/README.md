@@ -10,4 +10,4 @@ Copy this folder to `~/.claude/skills/next-step/`. It needs nothing else, but it
 - Connectors for your mail, calendar and cloud drive, so Claude fills gaps from your own records instead of asking you.
 - Writing rules in your `~/.claude/CLAUDE.md`, which the skill follows for any email or message it drafts for you to paste.
 
-Claude never sends, publishes, pays or deletes anything in this loop; those steps are yours.
+Claude never sends, pays or deletes anything in this loop; those steps are yours. Publishing is yours only when no API or connector can do it; otherwise Claude publishes after your go-ahead.

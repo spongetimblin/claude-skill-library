@@ -44,7 +44,7 @@ Before you start, read the reports in `maintenance/` that cover your asset and t
 - Network only as your prompt allows: plain GETs, one at a time with short pauses, nothing about the user or their household in any request. If a site blocks you, record "could not check" and do not try to get around it.
 - Never read, print or compare a secret. Never open shell environment files (`~/.zshenv`, `~/.zprofile` and the like), shell history, `.env` files, keychains, token or credentials files. Config files are read for key names and structure only.
 - Never: anything from the user's job (work drives, repos, skills, tasks and exported work chats), the off-limits paths your prompt lists, this skill's own folder (`~/.claude/skills/surprise`), or a folder the user has marked as archived or obsolete.
-- No visible browser or computer-use tools. Headless Chrome through `_tools/cdp.mjs` only, and every one you start must be gone when you finish.
+- No visible browser or computer-use tools. Headless Chrome through `_tools/cdp.mjs` only, and every one you start must be gone when you finish. `cdp.mjs` refuses downloads; before you write your report, check `ls -lt ~/Downloads | head` for anything newer than your start time and report it, since on one run a page saved its `robots.txt` there.
 - Nothing that could raise a permission prompt.
 - No subagents. No medical, legal or investment advice.
 - Stop a script's children by parent id (`pgrep -P`), never by name. Before finishing, run `ps -axo pid,ppid,pcpu,etime,command | awk '$2 == 1 && $3 > 20'` and confirm nothing you started is in it.

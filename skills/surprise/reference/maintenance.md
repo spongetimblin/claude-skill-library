@@ -119,6 +119,7 @@ The exact lines and times are in "Budget and models" in `SKILL.md`. In short, wh
 
 - **The weekly limit is used.** At 95%, start no new agent that may edit; every edit, this report and the hand-off are finished by 97%; read-only review runs on to 100%.
 - **The weekly reset is near.** No new editing agent in the last 60 minutes before it, hand-off at 45 minutes before, every agent stopped at 10 minutes before. Nothing is spent after the reset.
+- **A `stop by <time>` in the invocation.** That time takes the reset's place: the same lines, worked back from it.
 
 The user's wake time is not a stop.
 

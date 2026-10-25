@@ -62,7 +62,8 @@ The user sees nothing until step 1 is ready.
 - **Something failed or was wrong:** fix the step. Don't defend the old one.
 - **They decline a suggestion:** drop it and don't raise it again.
 - **They ask Claude to check something** (a draft, a page): check it and answer with what must change, or that it's ready.
-- **The user sends, publishes, pays and deletes themselves.** Claude never does those for them in this loop.
+- **The user sends, pays and deletes themselves.** Claude never does those for them in this loop.
+- **Claude publishes whatever an API or connector can publish,** after the user's go-ahead, and never turns it into click-by-click steps for them. The user publishes only what no API reaches.
 - **The last step is done:** "Done." plus anything left undone, in one or two sentences. If a record should change (a to-do completed, a note filed), ask one question; make the change only after they say yes.
 
 ## Before you send each step

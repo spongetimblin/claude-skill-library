@@ -1,5 +1,6 @@
 // Minimal headless Chrome driver over the DevTools protocol. No dependencies (Node 22+).
-// Nothing appears on screen. Each open() starts its own Chrome with a throwaway profile.
+// Nothing appears on screen. Each open() starts its own Chrome with a throwaway profile,
+// never touches the keychain (--use-mock-keychain) and refuses downloads.
 //
 //   import { open } from "../_tools/cdp.mjs";
 //   const page = await open(url, { width: 1280, height: 800, dark: false, mobile: false, preload: "js run before the page" });
@@ -27,7 +28,7 @@ export async function open(url, opts = {}) {
   // Port 0 lets Chrome pick a free port, so parallel runs and leftover Chromes cannot collide.
   const proc = spawn(CHROME, [
     "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-    "--autoplay-policy=no-user-gesture-required", "--mute-audio",
+    "--autoplay-policy=no-user-gesture-required", "--mute-audio", "--use-mock-keychain",
     "--remote-debugging-port=0", `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, "about:blank",
   ], { stdio: "ignore" });
@@ -61,6 +62,7 @@ export async function open(url, opts = {}) {
     const send = (method, params = {}) => withTimeout(new Promise((res, rej) => { const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params })); }), 120000, method);
 
     await send("Page.enable"); await send("Runtime.enable"); await send("Log.enable");
+    await send("Browser.setDownloadBehavior", { behavior: "deny" });
     await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: mobile ? 2 : 1, mobile });
     if (mobile) await send("Emulation.setTouchEmulationEnabled", { enabled: true });
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }] });

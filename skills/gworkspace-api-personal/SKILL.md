@@ -2,8 +2,8 @@
 name: gworkspace-api-personal
 description: >-
   Load context for WRITING to Google Sheets and EDITING Google Docs on your PERSONAL Google
-  account (you@example.com) through his token-gated Apps Script web app, and for
-  attaching Drive files to events on his personal calendar. Use whenever a task needs to add,
+  account (you@example.com) through your token-gated Apps Script web app, and for
+  attaching Drive files to events on your personal calendar. Use whenever a task needs to add,
   update or clear cells or rows in a personal sheet, or find-and-replace, replace, insert or
   delete a paragraph in a personal doc, or when tempted to edit one through Claude in Chrome.
   Not needed for read-only
@@ -16,7 +16,7 @@ description: >-
 
 The description in this file's frontmatter is a short version of the text below. It was shortened on 2026-10-03 so that every skill's description fits in Claude's skill list. Nothing was dropped: this is the original description, word for word.
 
-Load context for editing Google Sheets AND Google Docs on your PERSONAL Google account (you@example.com) via a token-gated Apps Script web app (any spreadsheet or document that account can edit), plus attaching Drive files to Calendar events on his personal calendar. Use whenever a task needs to WRITE to a personal-account Google Sheet (add/update/clear cells or rows) or to EDIT the body of a personal-account Google Doc (find-and-replace, replace/insert/delete a paragraph), or when tempted to edit a personal sheet or doc via Claude in Chrome (this path replaces that). Also for attaching files to personal calendar events. Not needed for read-only access (the Google Drive connector reads sheets and docs fine, including comments).
+Load context for editing Google Sheets AND Google Docs on your PERSONAL Google account (you@example.com) via a token-gated Apps Script web app (any spreadsheet or document that account can edit), plus attaching Drive files to Calendar events on your personal calendar. Use whenever a task needs to WRITE to a personal-account Google Sheet (add/update/clear cells or rows) or to EDIT the body of a personal-account Google Doc (find-and-replace, replace/insert/delete a paragraph), or when tempted to edit a personal sheet or doc via Claude in Chrome (this path replaces that). Also for attaching files to personal calendar events. Not needed for read-only access (the Google Drive connector reads sheets and docs fine, including comments).
 
 A standalone Apps Script web app deployed from the user's personal account, you@example.com ("Execute as: Me"), exposes a fixed op whitelist over any spreadsheet or Google Doc that account can edit. This is the sanctioned way to edit personal-account Google Sheets and Google Docs; do NOT use Claude in Chrome for sheet or doc edits. The Drive connector can read a Doc but cannot edit its body.
 
@@ -109,14 +109,14 @@ Docs caveats, learned on the work twin 2026-09-04 and confirmed here on a throwa
 ## Rules
 
 1. **Read before you write.** `get_headers` (or `read_range`) first for sheets, `doc_get_text` first for docs; never write to a range or element you haven't looked at this session.
-2. **Show the user the proposed write and get his OK before `clear_range` or any write that overwrites non-empty cells.** A write into empty cells (`write_range`, `set_cell`, `add_row`, `append_rows`, `set_link`, `set_note`) can proceed when the task already authorizes it, as `/cat-food-log` does for the day's row; read the target first so you know the cells are empty.
+2. **Show the user the proposed write and get their OK before `clear_range` or any write that overwrites non-empty cells.** A write into empty cells (`write_range`, `set_cell`, `add_row`, `append_rows`, `set_link`, `set_note`) can proceed when the task already authorizes it, as `/cat-food-log` does for the day's row; read the target first so you know the cells are empty.
 3. **Verify after writing**: re-read the range (or check the op's returned `old_value`/`new_value`) and confirm to the user what changed.
 4. Prefer `set_cell`/`add_row` for header-keyed checklist sheets (they validate headers and refuse ambiguity); use `write_range`/`append_rows` for everything else.
 5. Formula guard: values starting with `=` are rejected unless you pass `allow_formulas: true`. Only pass it when a formula is genuinely intended (e.g. `HYPERLINK`).
 6. Dates: write them as display strings in the sheet's existing format (e.g. `1/25/2027`); Sheets parses them into real dates.
 7. Every mutation (sheet or doc) is auto-logged (with old values) to the "Claude Sheets Audit (gsheets-personal)" spreadsheet, which sits with the script in your Drive; mention this if the user worries about an overwrite.
 8. Caps: reads ≤ 20,000 cells, writes ≤ 5,000 cells per call; `doc_get_text` output ≤ 200,000 chars (use `contains` to narrow). Split larger jobs.
-9. This path can't do everything (no tab creation, formatting, comments, filters for sheets; no tables, images, or partial-run formatting for docs). If a task needs an op that doesn't exist, tell the user and propose adding it to `Code.gs` (he redeploys; URL stays the same). Don't fall back to Claude in Chrome without asking.
+9. This path can't do everything (no tab creation, formatting, comments, filters for sheets; no tables, images, or partial-run formatting for docs). If a task needs an op that doesn't exist, tell the user and propose adding it to `Code.gs` (they redeploy; URL stays the same). Don't fall back to Claude in Chrome without asking.
 
 ## Reading (no write needed)
 
