@@ -550,9 +550,9 @@ function docReplaceText_(req) {
   if (req.expect_count !== undefined && req.expect_count !== null && Number(req.expect_count) !== count) {
     throw new Error('found ' + count + ' occurrence(s) but expect_count is ' + req.expect_count + ' — nothing changed');
   }
-  // replaceText treats the replacement like a regex replacement string, so a literal
-  // '$' or '\' in req.replace must be escaped or it is read as a group reference.
-  body.replaceText(pattern, String(req.replace).replace(/[\\$]/g, '\\$&'));
+  // replaceText takes the replacement literally (checked on a throwaway Doc), so it
+  // is passed as is; escaping '$' or '\' would put a stray backslash in the doc.
+  body.replaceText(pattern, String(req.replace));
   audit_('doc_replace_text', { doc: doc.getName(), doc_id: doc.getId(), find: String(req.find).slice(0, 500), replace: String(req.replace).slice(0, 500), count: count });
   return { doc: doc.getName(), replaced: count };
 }
