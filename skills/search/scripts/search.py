@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Search past Claude sessions: Claude Code, Cowork, and exported Claude Chat.
 
-Usage:  search.py [SCOPE] [word ...] [--any WORD ...] [--source code|cowork|chat]
+Usage:  search.py [SCOPE] [TOPIC] [word ...] [--any WORD ...] [--source code|cowork|chat]
                   [--since DATE] [--before DATE] [--limit N] [--recent] [--runs]
-        search.py [SCOPE] --titles [--page N] [--source ...] [--since ...] [--before ...]
+        search.py [SCOPE] [TOPIC] --titles [--page N] [--source ...] [--since ...] [--before ...]
         search.py --pick ID [ID ...] [--label TEXT] [--grep WORD ...]
         search.py --show KEY [--grep WORD ...] [--max-chars N]
         search.py --open SESSION_ID
+        search.py --topics
         search.py --status
         search.py --rebuild
 
@@ -16,6 +17,10 @@ Usage:  search.py [SCOPE] [word ...] [--any WORD ...] [--source code|cowork|chat
   search.py --since 2026-09-01     no words: the most recent sessions
   search.py --any dryer washer squeak       any one of the words is enough
   search.py --titles --source code          titles only, to pick from by meaning
+  search.py 🏥                     the sessions on that topic, newest first
+  search.py 🏥 dentist             the sessions on that topic that mention the word
+  search.py --topic health         the same topic, named by a word from the keys
+  search.py --topics               how many sessions each topic has
 
 What it searches is what the user and Claude said, plus titles. It leaves out
 tool output, system text, Claude's thinking, and the helper agents' transcripts.
@@ -42,6 +47,16 @@ its scheduled task's id, or, for a chat, a list file that holds its id. What
 matches no scope goes to "default_scope", or to no scope when that is not set.
 A word is taken as a scope only when it comes first and config.json defines
 it; otherwise it is a search word like any other.
+
+A topic is an emoji from the user's keys, which pair emoji with folders and
+with subjects: a session is on a topic when it ran in one of its folders or
+when its title starts with its emoji. sessions.py, next to this script, reads
+the keys and the desktop app's session records and says which session is on
+which topic; its docstring has the rules. An emoji that comes first, after any
+scope, and is in the keys narrows the search to that topic. --topic takes an
+emoji, a word from the keys, or "untagged" for the sessions no key places.
+Topics are known for Claude Code sessions run in the desktop app, so a search
+with a topic lists no Cowork sessions or chats.
 
 The index is a cache. It holds a copy of the conversation text in one SQLite
 file, so that a search takes under a second instead of re-reading gigabytes of
@@ -70,6 +85,7 @@ import re
 import sqlite3
 import sys
 import time
+import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -79,9 +95,9 @@ TRANSCRIPTS = HOME / ".claude" / "projects"
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONFIG_FILE = SKILL_DIR / "config.json"
 DEFAULT_INDEX = SKILL_DIR / "data" / "search-index.db"
-# --open borrows the code of a separate "sessions" skill that shows a session in
-# the desktop app. It is optional; without it, results can still be read.
-SESSIONS_SCRIPT = HOME / ".claude" / "skills" / "sessions" / "scripts" / "sessions.py"
+# sessions.py, next to this script, reads the desktop app's session records: it
+# says which session is on which topic, and shows a session in the app (--open).
+SESSIONS_SCRIPT = Path(__file__).resolve().parent / "sessions.py"
 
 SCHEMA = 3   # 2: the text typed after a slash command is kept. 3: and messages typed while Claude worked
 DEFAULT_LIMIT = 8
@@ -112,6 +128,33 @@ RESULT_MARK = "Search results for"
 # A session that began with /search. The app titles it after what was searched
 # for, so it would otherwise be listed above the session it found.
 LOOKUP = re.compile(re.escape(USER) + r"/search(\s|$)")
+
+
+def load_sessions():
+    """sessions.py as a module, or None when it is missing, which stops topics and --open only."""
+    if not SESSIONS_SCRIPT.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("sessions", SESSIONS_SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+SESSIONS = load_sessions()
+TOPIC_KEYS = SESSIONS.KEYS if SESSIONS else ("keys_from", "folders", "topics", "fallback", "no_emoji_folders")
+MISSING_SESSIONS = (f"Topics and --open need sessions.py next to search.py, at {SESSIONS_SCRIPT}, "
+                    "which is not there. Put the skill's scripts folder back as it was installed.")
+
+
+def emoji_in(word):
+    """The word without variation selectors when it is an emoji or other symbol, else None."""
+    word = word.strip()
+    if not word or re.search(r"\w", word):
+        return None
+    word = word.replace("\ufe0f", "").replace("\ufe0e", "")
+    if any(ord(c) > 127 and unicodedata.category(c)[0] not in "PZ" for c in word):
+        return word
+    return None
 
 
 # ---------------------------------------------------------------- settings
@@ -183,9 +226,11 @@ class Config:
     """config.json, checked, with every key it leaves out at its default."""
 
     def __init__(self, raw):
-        unknown = sorted(set(raw) - set(KEYS))
+        unknown = sorted(set(raw) - set(KEYS) - set(TOPIC_KEYS))
         if unknown:
-            raise ValueError(f"unknown key {', '.join(unknown)}; the keys are {', '.join(KEYS)}")
+            raise ValueError(f"unknown key {', '.join(unknown)}; the keys are {', '.join(KEYS + TOPIC_KEYS)}")
+        # The topic keys are sessions.py's. It checks them and reads the keys they name.
+        self.topics = SESSIONS.Config({k: raw[k] for k in TOPIC_KEYS if k in raw}) if SESSIONS else None
         self.exports = path_of(raw, "exports")
         self.export_accounts = labels_of(raw, "export_accounts")
         self.accounts = labels_of(raw, "accounts")
@@ -807,12 +852,63 @@ def scope_of(args):
     return scope, words
 
 
-def conditions(args, scope):
+class Topic:
+    """A topic asked for: how a heading says it, and the SQL test for being on it."""
+
+    def __init__(self, phrase, test):
+        self.phrase, self.test = phrase, test
+
+
+def topic_of(db, args, words, problems):
+    """The topic --topic or a leading emoji names, resolved against the keys.
+
+    Returns (Topic or None, the words left), or an exit code when a topic was
+    asked for and cannot be used. A leading emoji that is in no key is not a
+    topic: it stays a search word, looked for in titles.
+    """
+    asked = args.topic
+    lead = emoji_in(words[0]) if words else None
+    if asked is None and lead is None:
+        return None, words
+    if SESSIONS is None:
+        if asked is None:
+            return None, words
+        print(MISSING_SESSIONS)
+        return 1
+    folders, topics, key_problems = SESSIONS.read_keys(CFG.topics)
+    if not topics:
+        if asked is None:
+            return None, words
+        print(SESSIONS.setup_message())
+        problems += key_problems
+        return 1
+    key, why = SESSIONS.resolve(asked if asked is not None else lead, topics)
+    if why and asked is None:
+        return None, words
+    if why:
+        print(why)
+        return 2
+    if asked is None:
+        words = words[1:]
+    problems += key_problems
+    held = SESSIONS.load(problems)
+    want = None if key == SESSIONS.UNTAGGED else key
+    on_topic = [(s.id,) for s in held
+                if SESSIONS.place(s, folders, topics, CFG.topics.fallback) == want]
+    db.execute("CREATE TEMP TABLE topic_ids(id TEXT PRIMARY KEY)")
+    db.executemany("INSERT OR IGNORE INTO topic_ids VALUES (?)", on_topic)
+    phrase = "with no topic" if want is None else "on " + SESSIONS.name_of(key, topics)
+    return Topic(phrase, "d.session_id IN (SELECT id FROM topic_ids)"), words
+
+
+def conditions(args, scope, topic=None):
     """The tests every listing shares, as (SQL pieces, values). None for a bad date."""
     where, values = [], []
     if scope:
         where.append("d.scope = ?")
         values.append(scope)
+    if topic:
+        where.append(topic.test)
     if args.source:
         where.append("d.source = ?")
         values.append(args.source)
@@ -841,7 +937,7 @@ def print_list(db, heading, sources, groups):
     if note and "chat" in sources:
         print(note)
     app, account_dir = my_place(db)
-    can_open = SESSIONS_SCRIPT.is_file()
+    can_open = SESSIONS is not None
     number, ids = 0, []
     for source, rows, found in groups:
         if not rows:
@@ -879,20 +975,25 @@ def print_list(db, heading, sources, groups):
 
 def search(db, args, problems):
     scope, words = scope_of(args)
+    got = topic_of(db, args, words, problems)
+    if isinstance(got, int):
+        return got
+    topic, words = got
+    if topic and args.source and args.source != "code":
+        problems.append(f"Topics are known for Claude Code sessions only, so --source {args.source} was ignored.")
+    if topic:
+        args.source = "code"
     either = list(args.any or [])
     query = fts_query(words, either)
-    built = conditions(args, scope)
+    args.limit = args.limit or (SESSIONS.DEFAULT_LIMIT if topic and not query else DEFAULT_LIMIT)
+    built = conditions(args, scope, topic)
     if built is None:
         return 2
     where, values = built
     # A word with no letter or digit, such as an emoji, is not in the index: the
     # tokenizer drops it. Titles are short, so look for it there directly. A word
     # of plain punctuation ("&", "-", a dash) is still left out, as it always was.
-    import unicodedata
-    for mark in (w.strip() for w in words if w.strip() and not re.search(r"\w", w)):
-        mark = mark.replace("\ufe0f", "").replace("\ufe0e", "")
-        if not any(ord(c) > 127 and unicodedata.category(c)[0] not in "PZ" for c in mark):
-            continue
+    for mark in filter(None, (emoji_in(w) for w in words)):
         where.append("d.title LIKE ? ESCAPE '\\'")
         values.append("%" + re.sub(r"([\\%_])", r"\\\1", mark) + "%")
     if query:
@@ -930,7 +1031,8 @@ def search(db, args, problems):
     asked = " ".join(f'"{w}"' if " " in w else w for w in words)
     if either:
         asked = (asked + " with " if asked else "") + "any of " + spell(either)
-    heading = f"{RESULT_MARK} {asked or 'the most recent sessions'}" + (f", in {scope}" if scope else "")
+    heading = (f"{RESULT_MARK} {asked or 'the most recent sessions'}"
+               + (f" {topic.phrase}" if topic else "") + (f", in {scope}" if scope else ""))
     print_list(db, heading, sources, groups)
     return 0
 
@@ -938,10 +1040,16 @@ def search(db, args, problems):
 TITLES_PER_PAGE = 350   # about 25 KB, which a tool result shows in full
 
 
-def titles(db, args):
+def titles(db, args, problems):
     """Titles only, for picking by meaning when no word search finds the session."""
-    scope, _ = scope_of(args)
-    built = conditions(args, scope)
+    scope, words = scope_of(args)
+    got = topic_of(db, args, words, problems)
+    if isinstance(got, int):
+        return got
+    topic, _ = got
+    if topic:
+        args.source = "code"
+    built = conditions(args, scope, topic)
     if built is None:
         return 2
     where, values = built
@@ -951,7 +1059,8 @@ def titles(db, args):
         values).fetchall()
     pages = max(1, -(-len(rows) // TITLES_PER_PAGE))
     page = min(max(args.page, 1), pages)
-    print(f"{len(rows):,} titles" + (f" in {scope}" if scope else "") + f". Page {page} of {pages}.")
+    print(f"{len(rows):,} titles" + (f" {topic.phrase}" if topic else "")
+          + (f" in {scope}" if scope else "") + f". Page {page} of {pages}.")
     print("Each line is an id, the date last active, and the title. "
           "Pass the ids of the likely ones to --pick.")
     last = None
@@ -1030,16 +1139,36 @@ def show(db, args):
 
 
 def open_session(session_id):
-    if not SESSIONS_SCRIPT.is_file():
-        print(f"Opening a session needs the sessions skill's script at {SESSIONS_SCRIPT}, "
-              "which is not there. README.md says what it has to provide. "
-              "A result can still be read with --show.")
+    if SESSIONS is None:
+        print(MISSING_SESSIONS + " A result can still be read with --show.")
         return 1
-    spec = importlib.util.spec_from_file_location("sessions_skill", SESSIONS_SCRIPT)
-    skill = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(skill)
-    held = skill.load([])
-    return skill.open_session(session_id, held, skill.current(held))
+    held = SESSIONS.load([])
+    return SESSIONS.open_session(session_id, held, SESSIONS.current(held))
+
+
+def topic_counts(problems):
+    """How many sessions each topic has, from the session records alone."""
+    if SESSIONS is None:
+        print(MISSING_SESSIONS)
+        return 1
+    folders, topics, key_problems = SESSIONS.read_keys(CFG.topics)
+    problems += key_problems
+    if not topics:
+        print(SESSIONS.setup_message())
+        return 1
+    held = SESSIONS.load(problems)
+    for s in held:
+        s.topic = SESSIONS.place(s, folders, topics, CFG.topics.fallback)
+    SESSIONS.show_counts(held, topics)
+    return 0
+
+
+def report(code, problems):
+    if problems:
+        print("\nProblems:")
+        for p in problems:
+            print(f"- {p}")
+    return code
 
 
 def status(db):
@@ -1084,14 +1213,14 @@ def main():
         return 2
 
     names = CFG.scope_names()
-    words_help = (f"a scope name first ({', '.join(names)}) to search only that scope, then the words"
-                  if names else "the words to search for")
+    words_help = ((f"a scope name first ({', '.join(names)}) to search only that scope, " if names else "")
+                  + "a topic emoji next to search one topic, then the words to search for")
     ap = argparse.ArgumentParser(description="Search past Claude sessions.")
     ap.add_argument("words", nargs="*", help=words_help)
     ap.add_argument("--source", choices=list(SOURCES))
     ap.add_argument("--since", metavar="DATE", help="active on or after, as 2026-09-01")
     ap.add_argument("--before", metavar="DATE", help="started on or before, as 2026-09-01")
-    ap.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help="results shown per source")
+    ap.add_argument("--limit", type=int, help="results shown per source: 8, or 30 for a topic with no words")
     ap.add_argument("--recent", action="store_true", help="newest first, not best match first")
     ap.add_argument("--runs", action="store_true", help="include scheduled-task runs")
     ap.add_argument("--any", nargs="+", metavar="WORD",
@@ -1105,16 +1234,19 @@ def main():
     ap.add_argument("--grep", nargs="*", metavar="WORD",
                     help="with --show: only turns with these words. With --pick: show the text near them")
     ap.add_argument("--max-chars", type=int, default=8000)
-    ap.add_argument("--open", metavar="SESSION_ID",
-                    help="show a Claude Code session in the app (needs the sessions skill)")
+    ap.add_argument("--topic", metavar="TOPIC", help='an emoji from the keys, a word from them, or "untagged"')
+    ap.add_argument("--topics", action="store_true", help="how many sessions each topic has")
+    ap.add_argument("--open", metavar="SESSION_ID", help="show a Claude Code session in the app")
     ap.add_argument("--status", action="store_true", help="what the index holds")
     ap.add_argument("--rebuild", action="store_true", help="build the index again from nothing")
     args = ap.parse_args()
 
     if args.open:
         return open_session(args.open)
-
     problems = []
+    if args.topics:
+        return report(topic_counts(problems), problems)
+
     db, why = connect(rebuild=args.rebuild)
     first, took = update(db, problems)
     if why:
@@ -1128,17 +1260,13 @@ def main():
     elif args.pick:
         code = pick(db, args, problems)
     elif args.titles:
-        code = titles(db, args)
+        code = titles(db, args, problems)
     elif args.status or (args.rebuild and not args.words):
         code = status(db)
     else:
         code = search(db, args, problems)
 
-    if problems:
-        print("\nProblems:")
-        for p in problems:
-            print(f"- {p}")
-    return code
+    return report(code, problems)
 
 
 if __name__ == "__main__":

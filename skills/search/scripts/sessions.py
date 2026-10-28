@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
-"""List Claude Code desktop sessions by topic, and open one. Never writes a file.
-
-Usage:  sessions.py [topic] [word ...] [--runs] [--all | --limit N] [--everywhere]
-        sessions.py --open SESSION_ID
-
-  sessions.py                 counts per topic
-  sessions.py 🏥              sessions on that topic, most recent first
-  sessions.py health          the same, by a word from the key
-  sessions.py 🏥 dentist      narrowed to sessions with "dentist" in the title or folder
-  sessions.py untagged        sessions no rule could place
-  sessions.py --open local_…  show that session in the app
+"""Topics for search.py: which Claude Code session is on which topic, and how
+to show one in the desktop app. search.py, next to this file, is the command;
+this is the part of it that reads the desktop app's session records. It never
+writes a file.
 
 A topic is an emoji. Two keys say what each emoji stands for: the folder key
 pairs emoji with folders, and the topic key pairs emoji with subjects. A
@@ -26,48 +19,33 @@ session's topic is the first of these that applies:
      contains one of its "path_contains", puts the session under its emoji.
      This is for the list only. It is not how a session's title gets its emoji.
 
-Settings come from config.json in the skill folder, the folder above this
-script's. Every key in it is optional, and README.md describes each one. The
-keys can be written into config.json ("folders" and "topics"), read from the
+The keys come from config.json in the skill folder, the one search.py reads.
+They can be written into it ("folders" and "topics"), read from the
 "### Folder emoji key" and "### Topic emoji key" sections of a Markdown file
 ("keys_from", by default ~/.claude/CLAUDE.md), or both. The Markdown file is
 read on every run, so there is no second list to keep in step. A key line this
 cannot parse is reported, not skipped silently, because a dropped line would
-make a whole topic look empty. With no keys anywhere, this says how to set
-them up and exits 1.
-
-The functions load, current and open_session are also used by the search
-skill's --open, so their names and arguments should stay as they are.
+make a whole topic look empty. KEYS below names the keys that are this file's;
+search.py checks the whole of config.json and hands this file its part.
 
 Session records are the desktop app's own files, one JSON per session, at
 ~/Library/Application Support/Claude*/claude-code-sessions/<account>/<org>/.
 That layout is undocumented and can change with an app update. This only ever
 reads those files.
 
-A session opens only in the copy of the app, and the account, that holds it.
-So the list covers the folder holding the current session, found through
-CLAUDE_CODE_HOST_SESSION_ID. --everywhere adds the rest, which cannot be opened
-from here.
-
-The list is numbered, with the ids in a block underneath, because nothing in a
-reply can be clicked to open a session. Both kinds of link were tried on
-2026-09-29 with app 2.9939.4. The app showed [title](#local_…) as plain text.
-And macOS hands a claude:// link to one running copy of the app, which with two
-copies running was the wrong one. --open sends that same link to the one copy
-this session runs under.
-
-Exit codes: 0 fine, 1 nothing to read (no keys or no session records) or a
-session that could not be opened, 2 bad usage, a config.json that could not be
-used, or a topic that matched nothing or more than one thing.
+A session opens only in the copy of the app, and the account, that holds it,
+found through CLAUDE_CODE_HOST_SESSION_ID. Nothing in a reply can be clicked
+to open a session: both kinds of link were tried on 2026-09-29 with app
+2.9939.4. The app showed [title](#local_…) as plain text, and macOS hands a
+claude:// link to one running copy of the app, which with two copies running
+was the wrong one. open_session sends that same link to the one copy this
+session runs under.
 """
-import argparse
 import json
 import os
 import re
 import subprocess
-import sys
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 
 HOME = Path.home()
@@ -79,7 +57,7 @@ FOLDER_HEADING = "### Folder emoji key"
 TOPIC_HEADING = "### Topic emoji key"
 
 UNTAGGED = "untagged"
-DEFAULT_LIMIT = 30
+DEFAULT_LIMIT = 30   # sessions listed for a topic asked for with no words
 
 FOLDER_LINE = re.compile(r"^- (.+?) `([^`]+)`\s*(.*)$")
 TOPIC_LINE = re.compile(r"^- (\S+) (.+)$")
@@ -108,7 +86,7 @@ function run(argv) {
 
 def norm(s):
     """Drop variation selectors, so an emoji typed with and without one compares equal."""
-    return s.replace("\ufe0f", "").replace("\ufe0e", "")
+    return s.replace("️", "").replace("︎", "")
 
 
 def words_in(text):
@@ -134,14 +112,18 @@ KEYS = ("keys_from", "folders", "topics", "fallback", "no_emoji_folders")
 FALLBACK_KEYS = ("emoji", "task_prefixes", "path_contains", "words")
 
 SETUP = (
-    "No topics are set up, so there is nothing to sort sessions by. A topic is an emoji that "
+    "No topics are set up, so there is nothing to list sessions by. A topic is an emoji that "
     "stands for a folder or a subject: a session is on that topic when it ran in that folder, "
-    "or when its title starts with that emoji. To set topics up, create {config} with a "
+    "or when its title starts with that emoji. To set topics up, give {config} a "
     '"folders" list, such as [{{"emoji": "🏥", "path": "~/Documents/Health"}}], and a "topics" '
-    'list, such as [{{"emoji": "💻", "label": "Mac and tech support"}}], or with "keys_from" '
+    'list, such as [{{"emoji": "💻", "label": "Mac and tech support"}}], or "keys_from" '
     'naming a Markdown file that has "{folder}" and "{topic}" sections. README.md in {skill} '
     "describes every key."
 )
+
+
+def setup_message():
+    return SETUP.format(config=CONFIG_FILE, folder=FOLDER_HEADING, topic=TOPIC_HEADING, skill=SKILL_DIR)
 
 
 def text_of(value, what):
@@ -210,12 +192,12 @@ def fallback_of(value):
 
 
 class Config:
-    """config.json, checked, with every key it leaves out at its default."""
+    """The topic keys of config.json, checked, with every key left out at its default."""
 
     def __init__(self, raw):
         unknown = sorted(set(raw) - set(KEYS))
         if unknown:
-            raise ValueError(f"unknown key {', '.join(unknown)}; the keys are {', '.join(KEYS)}")
+            raise ValueError(f"unknown key {', '.join(unknown)}; the topic keys are {', '.join(KEYS)}")
         given = raw.get("keys_from")
         # Not set: read the default file if it has the keys, and say nothing if it does not.
         self.explicit = given is not None
@@ -237,15 +219,6 @@ class Config:
         self.no_emoji = [folder_of(p, '"no_emoji_folders"')
                          for p in texts_of(raw, "no_emoji_folders", "config.json")]
         self.fallback = fallback_of(raw.get("fallback"))
-
-
-def load_config():
-    if not CONFIG_FILE.is_file():
-        return Config({})
-    raw = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-    if not isinstance(raw, dict):
-        raise ValueError("it has to hold one JSON object")
-    return Config(raw)
 
 
 # ---------------------------------------------------------------- keys
@@ -347,6 +320,8 @@ def read_keys(cfg):
     return folders, topics, problems
 
 
+# ---------------------------------------------------------------- sessions
+
 class Session:
     def __init__(self, rec, directory):
         self.id = rec.get("sessionId") or ""
@@ -364,22 +339,9 @@ class Session:
     def no_folder(self):
         return "/scratch-workspaces/" in self.cwd
 
-    @property
-    def folder(self):
-        if self.no_folder:
-            return "No folder"
-        if self.cwd == "/":
-            return "/"
-        # A worktree's own name says nothing. Show the project it was cut from.
-        shown = self.origin if "worktrees" in self.cwd and self.origin else self.cwd
-        return Path(shown).name
-
-    def searchable(self):
-        where = "" if self.no_folder else "/".join(Path(self.origin).parts[-2:])
-        return f"{self.title} {where}".lower()
-
 
 def load(problems):
+    """Every Claude Code session the desktop app has a record of, in every copy and account."""
     dirs = sorted(d for d in APP_SUPPORT.glob("Claude*/claude-code-sessions/*/*") if d.is_dir())
     sessions, unreadable = [], 0
     # A session moved to another account folder can leave a stale copy of its
@@ -444,6 +406,7 @@ def renamed(path, folders):
 
 
 def place(s, folders, topics, fallback=None):
+    """The topic key a session is on, or None."""
     matched = False
     for p in (s.cwd, s.origin):
         for root, emoji in folders:
@@ -495,35 +458,33 @@ def resolve(query, topics):
     return None, f'No topic fits "{query}". The topics are: {names}, and "{UNTAGGED}".'
 
 
-def md(text):
-    return re.sub(r"([\\\[\]*`])", r"\\\1", text)
-
-
-def day(ms):
-    d = datetime.fromtimestamp(ms / 1000)
-    return d.strftime("%b %-d") if d.year == datetime.now().year else d.strftime("%b %-d, %Y")
-
-
 def name_of(key, topics):
     if key in (None, UNTAGGED):
         return "Untagged"
     return f'{topics[key]["emoji"]} {topics[key]["label"]}'
 
 
-def count(n, noun):
-    return f"{n} {noun}" + ("" if n == 1 else "s")
+def show_counts(sessions, topics):
+    """A table of how many sessions each topic has. Each session's .topic is set."""
+    by = defaultdict(lambda: [0, 0])
+    for s in sessions:
+        by[s.topic][1 if s.task else 0] += 1
+    archived = sum(1 for s in sessions if s.archived)
+    print(f"{len(sessions)} Claude Code sessions across every copy of the app and every account, "
+          f"{archived} of them archived.")
+    print()
+    print("| Topic | Sessions | Scheduled runs |")
+    print("|---|---|---|")
+    order = sorted((k for k in by if k), key=lambda k: (-by[k][0], -by[k][1]))
+    for k in order + ([None] if None in by else []):
+        print(f"| {name_of(k, topics)} | {by[k][0]} | {by[k][1]} |")
+    empty = [name_of(k, topics) for k in topics if k not in by]
+    if empty:
+        print()
+        print("No sessions yet: " + ", ".join(empty) + ".")
 
 
-def line(n, s, here, me):
-    bits = [md(s.title), md(s.folder), day(s.last)]
-    if s.archived:
-        bits.append("archived")
-    if me and s.id == me.id:
-        bits.append("this session")
-    elif here is None or s.dir != here:
-        bits.append(f"in {s.dir.parts[-4]}, cannot be opened from here")
-    return f"{n}. " + " · ".join(bits)
-
+# ---------------------------------------------------------------- opening
 
 def app_pid():
     """The desktop app process this session runs under, or None outside the app."""
@@ -542,6 +503,7 @@ def app_pid():
 
 
 def open_session(wanted, sessions, me):
+    """Show a session in the copy of the app this one runs under. Prints one line."""
     if not SESSION_ID.fullmatch(wanted):
         print(f'"{wanted}" is not a session id. One looks like local_ followed by 36 characters.')
         return 2
@@ -569,140 +531,3 @@ def open_session(wanted, sessions, me):
         return 1
     print(f'Asked the app to show "{s.title}".')
     return 0
-
-
-def show_counts(sessions, topics, elsewhere, scoped):
-    by = defaultdict(lambda: [0, 0])
-    for s in sessions:
-        by[s.topic][1 if s.task else 0] += 1
-    archived = sum(1 for s in sessions if s.archived)
-    where = "in this copy of the app" if scoped else "across every copy of the app"
-    print(f"{len(sessions)} sessions {where}, {archived} of them archived.")
-    if elsewhere:
-        print(f"{elsewhere} more are held by other copies or accounts; --everywhere adds them.")
-    print()
-    print("| Topic | Sessions | Scheduled runs |")
-    print("|---|---|---|")
-    order = sorted((k for k in by if k), key=lambda k: (-by[k][0], -by[k][1]))
-    for k in order + ([None] if None in by else []):
-        print(f"| {name_of(k, topics)} | {by[k][0]} | {by[k][1]} |")
-    empty = [name_of(k, topics) for k in topics if k not in by]
-    if empty:
-        print()
-        print("No sessions yet: " + ", ".join(empty) + ".")
-
-
-def show_list(sessions, topics, key, words, args, here, me):
-    want = None if key == UNTAGGED else key
-    found = [s for s in sessions if s.topic == want]
-    found = [s for s in found if all(w in s.searchable() for w in words)]
-    found.sort(key=lambda s: s.last, reverse=True)
-
-    runs = [] if args.runs else [s for s in found if s.task]
-    listed = found if args.runs else [s for s in found if not s.task]
-
-    head = f"{name_of(key, topics)}: {count(len(listed), 'session')}"
-    if words:
-        head += ' matching "' + " ".join(words) + '"'
-    limit = None if args.all else args.limit
-    if limit and len(listed) > limit:
-        head += f", the {limit} most recent shown (--all shows the rest)"
-    print(head)
-    print()
-    numbered = []
-    for s in listed[:limit]:
-        numbered.append(s)
-        print(line(len(numbered), s, here, me))
-    if not listed:
-        print("None.")
-
-    if runs:
-        tasks = defaultdict(list)
-        for s in runs:
-            tasks[s.task].append(s)
-        print()
-        print("Scheduled tasks on this topic, latest run of each (--runs lists every run):")
-        print()
-        for task, group in sorted(tasks.items(), key=lambda kv: -kv[1][0].last):
-            numbered.append(group[0])
-            print(line(len(numbered), group[0], here, me) + f" · {task} · {count(len(group), 'run')}")
-
-    can_open = [(n, s) for n, s in enumerate(numbered, 1)
-                if here is not None and s.dir == here and not (me and s.id == me.id)]
-    if can_open:
-        print()
-        print("IDS for --open. Keep this block out of the reply.")
-        for n, s in can_open:
-            print(f"{n} {s.id}")
-
-
-def main():
-    ap = argparse.ArgumentParser(description="List Claude Code desktop sessions by topic, and open one.")
-    ap.add_argument("topic", nargs="?", help='an emoji from the keys, a word, or "untagged"')
-    ap.add_argument("words", nargs="*", help="every word must be in the title or folder")
-    ap.add_argument("--runs", action="store_true", help="list each scheduled run, not one line per task")
-    ap.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
-    ap.add_argument("--all", action="store_true", help="no limit")
-    ap.add_argument("--everywhere", action="store_true", help="include other copies of the app and other accounts")
-    ap.add_argument("--open", metavar="SESSION_ID", help="show this session in the app")
-    args = ap.parse_args()
-
-    problems = []
-    sessions = load(problems)
-    if not sessions:
-        print(f"No session records found under {APP_SUPPORT}/Claude*/claude-code-sessions/.")
-        print("The desktop app may have changed where it keeps them.")
-        return 1
-    me = current(sessions)
-    if args.open:
-        return open_session(args.open, sessions, me)
-
-    try:
-        cfg = load_config()
-    except (OSError, ValueError) as e:
-        print(f"Could not use {CONFIG_FILE}: {e}")
-        return 2
-    folders, topics, key_problems = read_keys(cfg)
-    problems = key_problems + problems
-    if not topics:
-        print(SETUP.format(config=CONFIG_FILE, folder=FOLDER_HEADING, topic=TOPIC_HEADING,
-                           skill=SKILL_DIR))
-        if key_problems:
-            print()
-            print("Problems:")
-            for p in key_problems:
-                print(f"- {p}")
-        return 1
-
-    here = me.dir if me else None
-    scoped = here is not None and not args.everywhere
-    if here is None and not args.everywhere:
-        problems.append("Could not tell which copy of the app this is, so every copy is listed and nothing can be opened.")
-    elsewhere = sum(1 for s in sessions if s.dir != here) if scoped else 0
-    if scoped:
-        sessions = [s for s in sessions if s.dir == here]
-
-    for s in sessions:
-        s.topic = place(s, folders, topics, cfg.fallback)
-
-    status = 0
-    if args.topic is None:
-        show_counts(sessions, topics, elsewhere, scoped)
-    else:
-        key, why = resolve(args.topic, topics)
-        if why:
-            print(why)
-            status = 2
-        else:
-            show_list(sessions, topics, key, [w.lower() for w in args.words], args, here, me)
-
-    if problems:
-        print()
-        print("Problems:")
-        for p in problems:
-            print(f"- {p}")
-    return status
-
-
-if __name__ == "__main__":
-    sys.exit(main())
