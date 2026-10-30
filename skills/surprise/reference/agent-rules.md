@@ -22,6 +22,8 @@ The user asked for things to be built overnight as a surprise. They are asleep. 
 15. **Keep temporary files in your own subfolder of the scratchpad,** named after your step or item. Agents share one scratchpad and have overwritten each other's files.
 16. **A script you run on a copy must not touch live state.** Run it with `HOME` pointed at a folder in your scratch subfolder, and check where it keeps its state before the first run. On one run a test of a copy of a notifier script wrote fake data into its real `~/Library/Application Support/` folder. Headless Chrome is the exception: give it the real `HOME`, its own throwaway `--user-data-dir` and `--use-mock-keychain` (which `_tools/cdp.mjs` does), because Chrome with a scratch `HOME` put a "Keychain Not Found" dialog on the user's screen.
 17. **Wrap any command that could wait on something in `timeout 120`** (a network call, a server, a stuck tool), and treat a timeout as a failure to report. On one run two agents hung with no output and had to be stopped and relaunched.
+18. **Never reproduce a crash of a native process or an interpreter.** A crash writes macOS crash reports and can leave a "quit unexpectedly" dialog on the user's screen until morning. On one run an agent reproducing a bug in a small tool crashed Python twice. Report the crash as likely, with the command that would show it, for the user to run.
+19. **Keep MCP reads small.** Give reads from finance, task and calendar connectors a limit and a date range, and ask for one page at a time. The harness saves a large tool result under `~/.claude/projects/<session>/tool-results/`, outside the run folder; on one run two finance exports and the user's task and calendar lists ended up there.
 
 ## Truth
 

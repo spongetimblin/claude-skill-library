@@ -21,6 +21,8 @@ The list order is the priority when budget is short. One agent per asset, never 
 
 Step 1 follows those skills' own rules. Steps 2 to 8 follow this file. "CLAUDE.md files: extra care" below applies in every step, step 1 included. Within steps 3 to 6, take the asset checked longest ago first, going by the maintenance ledger.
 
+**A maintenance skill that ran in the last 24 hours is not run again.** Preflight records when each one last ran. Skip that skill in step 1 and in step 2, since what it skipped as unchanged has not changed in a day either; steps 3 to 7 keep the ledger's rule below of skipping an unchanged asset. On one run the user had run them an hour earlier, the run before had checked nearly every other asset the evening before, and the night went straight to the second pass.
+
 **Left out of every step:** the off-limits paths from the Setup section; any folder the user has marked as archived or obsolete; `node_modules`, `venv`, build output and vendored code; this skill's own folder (a problem found in the surprise skill is a friction note in its improvement log). Also, in every run: the user's work skills, tasks, repos, drives and exported work chats. Work is out of scope and no option turns it on. Never run a maintenance skill that covers work.
 
 **Projects on hold are skipped in every step.** A folder whose CLAUDE.md says it is on hold gets no review, finding, patch or proposal. Don't open it beyond reading that line.
