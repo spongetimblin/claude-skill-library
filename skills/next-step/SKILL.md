@@ -21,7 +21,7 @@ Context the user gave: $ARGUMENTS
 Find the task yourself before asking what it is.
 
 1. **The conversation comes first.** If a task is already under way in this session, that's the task: pick up at the next step they haven't done.
-2. **Otherwise, their task manager.** If an MCP for it is connected (Things, Todoist, Reminders, Asana), read their today list and anything overdue. Pick the one that most needs steps: overdue before due today, and a multi-step job before a one-click errand. If no task manager is connected, ask them to name the task, in one line.
+2. **Otherwise, their task manager.** If an MCP for it is connected (Things, Todoist, Reminders, Asana), read their today list and anything overdue. Pick the one that most needs steps: overdue before due today, and a multi-step job before a one-click errand. If the list includes a repeating to-do that the task manager's MCP cannot complete, say so at the end instead of offering to. If no task manager is connected, ask them to name the task, in one line.
 3. **Say which one you picked,** in the first message's opening line: "Picked [to-do name]. If you meant another, name it." Then step 1.
 
 ## Before the first step
@@ -48,7 +48,7 @@ The user sees nothing until step 1 is ready.
   4. Say where: which app, website, tab or account.
 
   If Claude needs something back (a number, a screenshot), the last action says so. In the first message only, end with: Tell me "done" when it's finished.
-- **Paste-ready text** (an email, a message, a form answer) goes as plain text between two horizontal rules, never in a code block, each paragraph one unbroken line. The numbered actions above it say where it goes and who it's to. Follow the user's own writing rules from their CLAUDE.md, if they have any.
+- **Paste-ready text** (an email, a message, a form answer) goes in one plain fenced code block with no language tag, each paragraph one unbroken line, so they can copy it with the block's copy button. Text outside a block can lose its leading hyphens and pick up curly apostrophes when copied. Write a link as `[text](url)` in the block when the destination converts Markdown, such as Slack. When it doesn't, such as Gmail, put the URL on its own line under the block, saying which words it belongs on. The numbered actions above it say where it goes and who it's to. Follow the user's own writing rules from their CLAUDE.md, if they have any.
 - **Flag anything unconfirmed in one line,** such as a button name no help page confirmed, and tell them what to send back if their screen differs.
 - **No reasons, background, options, recaps or offers.** Explain only when they ask why.
 - **Never ask the user to paste a password, API key or token into chat.** IDs and other non-secret values are fine to share. Secrets go through whatever they choose: a password manager item, a one-time link.

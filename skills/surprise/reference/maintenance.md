@@ -6,6 +6,15 @@ Maintenance keeps finding work until the budget is used. It works down the list 
 
 To make maintenance report-only, write that here, and treat every "apply" below as "report".
 
+## What the user most wants from maintenance
+
+Write here, in the user's own words, what they most want maintenance to find. The two items below are what this skill's author asked for.
+
+- **Errors and inaccuracies.** Check the user's own files, records and data as well as the assets in the list below, comparing them read-only with their sources, such as a budgeting app's accounts against the bank's own figures. Put what is wrong at the top of "Waiting for you" in the report. Apply the fix if the safe-fix rule allows it; otherwise give the exact fix so the user can say yes.
+- **Notable improvements.** Propose a change to a process, file, doc, app, skill or scheduled task when it would clearly benefit the user, and say what gets better for them. Leave out trivial ones. A proposal goes in the report with its exact text or a patch and is implemented after their yes, unless the safe-fix rule allows it overnight.
+
+Everything else in this file still applies, including what is left out of every step.
+
 ## The order of work
 
 The list order is the priority when budget is short. One agent per asset, never two on the same asset. How many run at once is set by the pace rule in "Budget and models" in `SKILL.md`: at most four agents that may edit at a time, and as many read-only agents as the pace needs. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
@@ -106,7 +115,7 @@ When steps 1 to 7 are done and budget is left:
 
 1. An agent that has not read the first agents' notes rechecks every change the night made against the safe-fix rule. A change that fails it is restored from `maintenance/before/` and reported.
 2. Turn the highest-ranked open findings into patch files in `maintenance/patches/`, each with the command that shows the problem and its output after the patch is applied to a copy.
-3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, and wording that no longer matches what the thing does. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
+3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, wording that no longer matches what the thing does, and notable improvements. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
 4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated. A finding that calls something broken is reproduced from the thing itself when a read-only check can do it (run the failing command, load the page on the local stack), not reasoned from the code; "probably broken" is not a finding. One such finding on the second run could have been reproduced overnight and was not.
 5. **Review every patch that changes behavior.** A second agent reads each one against the code and applies it to a copy. A patch that is not sound is revised or withdrawn. On the second run, 117 were reviewed and 6 revised.
 6. **Write `maintenance/only-you-can-check.md`:** one page of what only the user can check, such as anything on a phone, anything to listen to, and anything behind a sign-in.
