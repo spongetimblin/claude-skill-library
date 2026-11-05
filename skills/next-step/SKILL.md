@@ -18,11 +18,11 @@ Context the user gave: $ARGUMENTS
 
 ## If they gave no context
 
-Find the task yourself before asking what it is.
+The task is whatever they are working on with Claude in this session, never something picked from their to-do list.
 
-1. **The conversation comes first.** If a task is already under way in this session, that's the task: pick up at the next step they haven't done.
-2. **Otherwise, their task manager.** If an MCP for it is connected (Things, Todoist, Reminders, Asana), read their today list and anything overdue. Pick the one that most needs steps: overdue before due today, and a multi-step job before a one-click errand. If the list includes a repeating to-do that the task manager's MCP cannot complete, say so at the end instead of offering to. If no task manager is connected, ask them to name the task, in one line.
-3. **Say which one you picked,** in the first message's opening line: "Picked [to-do name]. If you meant another, name it." Then step 1.
+1. **The conversation is the task.** Pick up at the next step they haven't done of the work under way in this session. If that work is finished, say so in one line, name anything from it still waiting on someone else, and stop.
+2. **Nothing under way in this session:** ask them in one line what the task is. Don't open their task manager, their mail, or anything else to guess.
+3. **Never pick from their task manager.** Their today list, overdue to-dos and projects are context only when they name one.
 
 ## Before the first step
 

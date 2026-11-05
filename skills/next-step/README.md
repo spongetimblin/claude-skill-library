@@ -6,7 +6,7 @@ A Claude Code skill for finishing a task when you cannot hold the whole job in y
 
 Copy this folder to `~/.claude/skills/next-step/`. It needs nothing else, but it works better with:
 
-- An MCP for your task manager (Things, Todoist, Reminders, Asana), so `/next-step` with no context can pick today's most pressing to-do itself. Without one, it asks you to name the task.
+- An MCP for your task manager (Things, Todoist, Reminders, Asana), so Claude can read the to-do you name and, at the end, mark it done. With no context given, the skill continues whatever you are working on in the session and otherwise asks; it never picks a to-do for you.
 - Connectors for your mail, calendar and cloud drive, so Claude fills gaps from your own records instead of asking you.
 - Writing rules in your `~/.claude/CLAUDE.md`, which the skill follows for any email or message it drafts for you to paste.
 
