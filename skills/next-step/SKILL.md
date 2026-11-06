@@ -71,3 +71,11 @@ The user sees nothing until step 1 is ready.
 - Is it one step they can do without scrolling or rereading?
 - Is every label, ID, URL and email address in it checked?
 - Did Claude already do every part it could?
+
+## Reflect and improve (suggest only)
+
+The last step of every walk-through, written just before the message that says "Done.", because that message has to be the last thing in the turn. If the user stops partway or the session moves on to other work, write it then, before that turn's reply. Never edit this `SKILL.md` or change how the skill works; only write to `~/.claude/skills/next-step/improvement-log.md`, newest entry on top, creating it if it doesn't exist.
+
+- **Every walk-through:** a dated note of one to three lines under a `## YYYY-MM-DD - <kind of task>` heading, on what got in the way. Examples: a step they sent back because a label was wrong or their screen differed; a step too long to do without scrolling; a part Claude could have done itself but handed to them; a question before step 1 that a source could have answered; a source that could not be read (a page that blocked fetching, a connector missing on this account); a time they asked why, or said the messages were too long; a run with no context where it wasn't clear what to continue. "No notable friction" is a valid note.
+- **Keep it free of details.** Describe the kind of task and leave out account numbers, amounts, IDs, and other people's names and contact details.
+- **Synthesis:** when there are 10 or more notes since the last synthesis, or the last synthesis is over 30 days old and at least one new note exists, read those notes and add a dated `## Synthesis` entry at the top with a short, prioritized list of proposed refinements, each tagged `STATUS: AWAITING REVIEW`. Apply none of them. If it adds proposals, say so in one line at the end of the "Done." message.

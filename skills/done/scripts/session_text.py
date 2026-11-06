@@ -11,16 +11,24 @@ that is still in context. Standard library only.
     python3 session_text.py PATH.jsonl      another transcript
     python3 session_text.py --all           every turn, not only the summarized ones
     python3 session_text.py --max-chars N   longest text kept per message (800)
+    python3 session_text.py --out FILE      where to save the text if it is too long to print
+
+Text longer than PRINT_LIMIT characters is saved to a file instead (--out, or a file in
+the system's temporary folder), and only the user's own messages are printed, one short
+line each, followed by the file's path. Read or grep the file for the rest.
 """
 import argparse
 import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 PROJECTS = Path.home() / ".claude" / "projects"
 SKIP_TAGS = re.compile(r"<(system-reminder|task-notification)\b.*?</\1>", re.S)
+PRINT_LIMIT = 25000   # above this, a tool's display cuts the output, so save it to a file
+LIST_CHARS = 120      # longest line kept per user message in the short list
 
 
 def find_transcript():
@@ -54,6 +62,7 @@ def main():
     parser.add_argument("path", nargs="?", type=Path, help="a transcript; default is this session's")
     parser.add_argument("--all", action="store_true", help="print every turn")
     parser.add_argument("--max-chars", type=int, default=800)
+    parser.add_argument("--out", type=Path, help="file for the text when it is too long to print")
     args = parser.parse_args()
 
     turns = []
@@ -73,10 +82,26 @@ def main():
                 continue
             text = SKIP_TAGS.sub("", text_of(entry.get("message", {}).get("content"))).strip()
             if text:
-                turns.append(f"[{entry.get('timestamp', '')[:16]}] {entry['type'].upper()}: {shorten(text, args.max_chars)}\n")
+                turns.append((entry.get("timestamp", "")[:16], entry["type"].upper(), text))
 
     shown = turns if args.all else turns[:last_summary]
-    print("\n".join(shown) if shown else "Nothing in this session was summarized, so every turn is already in context.")
+    if not shown:
+        print("Nothing in this session was summarized, so every turn is already in context.")
+        return
+    full = "\n".join(f"[{stamp}] {role}: {shorten(text, args.max_chars)}\n" for stamp, role, text in shown)
+    if len(full) <= PRINT_LIMIT:
+        print(full)
+        return
+
+    out = args.out or Path(tempfile.gettempdir()) / f"session-text-{path.stem}.txt"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(full + "\n", encoding="utf-8")
+    users = [(stamp, text) for stamp, role, text in shown if role == "USER"]
+    print(f"{len(full):,} characters is too long to print, so all {len(shown)} turns are saved in:\n{out}\n"
+          f"Read or grep that file for Claude's side. The user's {len(users)} messages, one line each:\n")
+    for stamp, text in users:
+        line = " ".join(text.split())
+        print(f"[{stamp}] {line if len(line) <= LIST_CHARS else line[:LIST_CHARS - 3] + '...'}")
 
 
 if __name__ == "__main__":

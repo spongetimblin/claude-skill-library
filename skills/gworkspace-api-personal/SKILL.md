@@ -82,9 +82,9 @@ Every sheet op takes `spreadsheet_id` (the long id from the sheet's URL) and, ex
 | `set_cell` | one cell, located by `row_match` (`col_a_contains` + optional `col_b_equals`) × `column_header`; refuses ambiguous matches |
 | `clear_range` | clear values in an A1 range (formatting untouched) |
 | `read_links` | cell text + rich-text hyperlink URLs for an A1 range (UI "Insert link" links, invisible to plain reads) |
-| `set_link` | write one cell as text hyperlinked to a URL (rich text, like Insert link in the UI); plain writes to a linked cell strip the link |
+| `set_link` | write one cell as text hyperlinked to a URL (rich text, like Insert link in the UI); plain writes to a linked cell strip the link. Takes `cell` (one A1 cell, like `F305`) with `text` and `url`, not `range` |
 | `read_notes` | cell text + each cell's NOTE for an A1 range (the "Insert note" annotation, invisible to plain reads) |
-| `set_note` | set one cell's NOTE, leaving its value and formatting alone; empty/null note clears it. NOT threaded comments, which need the Drive API and aren't available here |
+| `set_note` | set one cell's NOTE, leaving its value and formatting alone; empty/null note clears it. Takes `cell` (one A1 cell, like `M313`) and `note`, not `range`. NOT threaded comments, which need the Drive API and aren't available here |
 | `attach_to_event` | attach a Drive file to a Calendar event (allowlisted calendars only, currently you@example.com); pass `share_with`, since API attachments are not auto-shared |
 | `strip_meet` | remove the Google Meet conference from a Calendar event (allowlisted calendars only) |
 

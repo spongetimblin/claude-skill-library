@@ -8,7 +8,7 @@ You can add context: `/done sent: <link>`, `/done with the billing work`, or `/d
 
 Copy this folder to `~/.claude/skills/done/`. It needs Python 3 and nothing else, but it works better with an MCP for your task manager (Things, Todoist, Reminders, Asana), so it can confirm that anything waiting on someone else has a reminder. Without one, those items appear under "Couldn't check".
 
-`scripts/session_text.py` prints any early turns that a long session's summary replaced, so a request made hours ago still counts. It reads the session's transcript under `~/.claude/projects/` and sends nothing anywhere.
+`scripts/session_text.py` prints any early turns that a long session's summary replaced, so a request made hours ago still counts. When they are too long to print, it saves them to a file and prints only your own messages. It reads the session's transcript under `~/.claude/projects/` and sends nothing anywhere.
 
 ## Reflect and improve
 

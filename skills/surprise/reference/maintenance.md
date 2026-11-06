@@ -58,7 +58,7 @@ A CLAUDE.md holds the instructions for a project, or for every project. This sec
 
 **Apply a fix only when one of these is true:**
 
-1. **It corrects a fact in a doc and changes nothing about what runs or what a session is told to do.** A stale path where exactly one file on the computer can be the intended target (search by filename; on a Mac, `mdfind -name`), a wrong filename, count or command name, a dead reference, a comment, a line added to `.gitignore`.
+1. **It corrects a fact in a doc and changes nothing about what runs or what a session is told to do.** A stale path where exactly one file on the computer can be the intended target (search by filename; on a Mac, `mdfind -name`, plus `find` in any cloud-synced folder, which Spotlight may barely index), a wrong filename, count or command name, a dead reference, a comment, a line added to `.gitignore`.
 2. **It is a bug fix that is proved.** All of these hold: the file is in git and had no uncommitted changes when the agent started; a command shows the failure before the edit; the same command passes after it; the edit is the smallest one that does that; the project's own tests and checks still pass.
 
 **Everything else is a finding, never applied.** It goes in the report with a proposed fix or a patch file. That includes:
@@ -141,6 +141,7 @@ The user's wake time is not a stop.
 - Read it before step 3. A finding under "Declined" is never raised or applied again. A finding under "Open" is not reported as new.
 - In the first pass, skip an asset that has not changed since its "Last checked" line (same git commit, or no file newer than that date) and has no open findings.
 - After each asset, update its section: the date, the commit or newest file date, what was applied, and what is open.
+- Agents write those updates in their own reports, and they go into the ledger in one merge, once the last editing agent has finished, not report by report: on one run, late reports needed six merges in under an hour. Read-only reports that arrive after that pass stay in `maintenance/all-findings.md`. The next run, before step 3, reads the previous run's `all-findings.md` and merges what the ledger does not hold yet.
 
 One section per asset, in this format:
 

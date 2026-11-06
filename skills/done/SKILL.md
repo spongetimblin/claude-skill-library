@@ -20,10 +20,10 @@ Count anything they say they did, and check it where you can. Leave out anything
 
 ## Check
 
-1. Read the whole session. Run `python3 ~/.claude/skills/done/scripts/session_text.py`, which prints any turns that were summarized out of your context, since early requests may be missing from it. If it says nothing was summarized, you already have everything.
-2. List every request the user made, every step Claude gave them, every question still unanswered, and everything Claude said it would do.
-3. Confirm each one at its source, not from memory: the file, thread, task, or event itself. An item this session already read back counts, unless it could have changed since. Check that work is committed and pushed, background jobs have stopped, and files worth keeping aren't only in a temporary session folder.
-4. For anything waiting on another person or a later date, look for its reminder: a to-do in their task manager, or a calendar event. With no reminder, it counts as something the user needs to act on. If you have no way to look, list it under Couldn't check.
+1. Read the whole session. Run `python3 ~/.claude/skills/done/scripts/session_text.py --out <your scratchpad folder>/session_text.txt`, which prints any turns that were summarized out of your context, since early requests may be missing from it. If it says nothing was summarized, you already have everything. If those turns are too long to print, it saves them to that file and prints only the user's messages, one line each: list the requests from those, and grep the file for what Claude said it would do.
+2. List every request the user made, every step Claude gave them, every question still unanswered, and everything Claude said it would do. If the session followed a written process (an article, a checklist), list that process's own steps too, not only the ones the session mentioned. A question Claude asked counts only when its answer could change the work.
+3. Confirm each one at its source, not from memory: the file, thread, task, or event itself. An item this session already read back counts, unless it could have changed since. Check that work is committed and pushed, background jobs have stopped, and files worth keeping aren't only in a temporary session folder. In a repo other sessions also write to, judge only the files this session's tool calls changed, not the whole `git status`. An empty search proves nothing: to-do searches often skip completed items, so check the completed or archived view (a logbook) before deciding a to-do is still open or was never made.
+4. For anything waiting on another person or a later date, look for its reminder: a to-do in their task manager, or a calendar event. With no reminder, it counts as something the user needs to act on. A work task counts only if it has a due date. Anything else counts only if it will bring the item back without anyone having to remember it, such as a help desk conversation snoozed to a date, a project's to-do file that its own process reads, or a recurring routine's log that carries open items forward; a tag or an assignment doesn't count. A reminder due today or earlier counts as none, and so does an item tied to a later event today that has no reminder of its own. If you have no way to look, list it under Couldn't check.
 
 ## Reply
 
@@ -37,7 +37,7 @@ Then give these groups, leaving out any that are empty:
 
 Leave out suggestions, polish, and anything optional. List only what the work they asked for requires.
 
-Change nothing except the log below. If Claude can finish an item itself, end with one question asking whether to.
+Change nothing except the log below. If Claude can finish an item itself, such as creating a missing reminder, end with one question asking whether to.
 
 ## Reflect and improve (suggest only)
 

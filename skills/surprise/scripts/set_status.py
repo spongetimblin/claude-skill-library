@@ -20,6 +20,8 @@ pat = re.compile(r'(title: ' + re.escape(json.dumps(title, ensure_ascii=False)) 
 if not pat.search(s):
     sys.exit("title not found in index.html: " + title)
 s = pat.sub(lambda m: m.group(1) + '"' + status + '",' + ("\n      note: " + json.dumps(note, ensure_ascii=False) + "," if note else ""), s, count=1)
-s = re.sub(r'const UPDATED = "[^"]*";', 'const UPDATED = "' + time.strftime("%-I:%M %p, %B %-d") + '";', s)
+now = time.localtime()
+stamp = time.strftime("%-I:%M", now) + time.strftime("%p", now).lower() + time.strftime(", %B %-d", now)  # 4:55am, not 4:55 AM
+s = re.sub(r'const UPDATED = "[^"]*";', 'const UPDATED = "' + stamp + '";', s)
 open(p, "w", encoding="utf-8").write(s)
 print("set", title, "->", status)
