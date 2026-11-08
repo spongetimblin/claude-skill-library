@@ -16,13 +16,13 @@ The user runs this when they want to finish something without holding the whole 
 
 Context the user gave: $ARGUMENTS
 
-## If they gave no context
+## If he gave no context
 
-The task is whatever they are working on with Claude in this session, never something picked from their to-do list.
+The task is whatever he is working on with Claude in this session, never something picked from his to-do list. Set 2026-11-03, after a run with no context went to Things and started a Monarch job he had not asked about.
 
-1. **The conversation is the task.** Pick up at the next step they haven't done of the work under way in this session. If that work is finished, say so in one line, name anything from it still waiting on someone else, and stop.
-2. **Nothing under way in this session:** ask them in one line what the task is. Don't open their task manager, their mail, or anything else to guess.
-3. **Never pick from their task manager.** Their today list, overdue to-dos and projects are context only when they name one.
+1. **The conversation is the task.** Pick up at the next step he hasn't done of the work under way in this session. If that work is finished, say so in one line, then give one line for each piece of work the session finished (what it is, where it lives, and whether it was checked), name anything still waiting on him or someone else, and stop. Do the same when he says he lost track of the session. Added 2026-11-07, after a run where he had stopped reading and needed to know what now existed.
+2. **Nothing under way in this session:** ask him in one line what the task is. Don't open Things, Gmail or anything else to guess.
+3. **Never pick from Things.** His Today list, overdue to-dos and projects are context only when he names one.
 
 ## Before the first step
 
@@ -32,7 +32,7 @@ The user sees nothing until step 1 is ready.
 2. **Fill gaps from the sources, not from the user.** Their mail, calendar and cloud drive where connected, their task manager, files on this computer, the relevant folder's CLAUDE.md and reference files, and the web for vendor or government how-tos. Ask the user only for what no source has. Stay out of anything their CLAUDE.md marks as off limits.
 3. **Work out what "done" means and every step to get there.** Don't show them the list.
 4. **Do every step Claude can do itself, now.** Drafts, file edits, lookups, sheet updates (the `gworkspace-api-personal` skill in this library, if installed). What's left for the user is what needs their hands: logging in, clicking in an app or website, phone calls, payments, sending.
-5. **Verify what each step depends on.** Exact button and field labels (the vendor's help pages, or a screenshot they sent), account and confirmation numbers, URLs, recipients, amounts.
+5. **Verify what each step depends on.** Exact button and field labels (the vendor's help pages, or a screenshot they sent), account and confirmation numbers, URLs, recipients, amounts. For an Apple feature, when a support.apple.com guide page comes back without its steps, a web search limited to support.apple.com finds them; when a label can't be confirmed for his OS version, say which version the source covers when you flag it.
 6. **Ask only what would change the steps.** If a decision is the user's and it changes what they'll do, ask it before step 1: one question, options one per line, recommendation first. Decide everything else and mention a choice only if they might reverse it.
 
 ## How to talk to the user
