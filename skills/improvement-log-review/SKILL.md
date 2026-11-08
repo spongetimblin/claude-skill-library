@@ -32,6 +32,15 @@ A log's backlog is every item tagged `STATUS: AWAITING REVIEW`, plus any proposa
 
 **Paused tasks.** Check which tasks are enabled before reviewing (the scheduled-tasks tool's list, or your app's own record of them). Go by what it says now, not by what was paused last time.
 
+**Notices about the logs.** A task's emails, chat posts and other notifications are only about its own job. None of them carries an improvement-log heads-up, a synthesis, a count of proposals, or a pointer to a log; this review is how the user hears about proposals. On every review that covers tasks, scan every task for rules that break this, whether or not it has a log:
+
+```
+P='heads-up|improvement (ideas|suggestions|notes)|pointer to the (improvement )?log|pointing ([a-z]+ )?(to|at) the (improvement )?log|friction synthesis|synthesis (email|section|line)|proposals? (are )?(waiting|awaiting review) in'
+cd ~/.claude/scheduled-tasks && grep -n -H -iE "$P" */SKILL.md | grep -viE 'no heads-up|never mention|heads-up out of'
+```
+
+Run the same `grep` on any instructions file a task hands off to. Read each match. A rule that puts the log, a synthesis, proposals or a pointer to the log into an email, a chat post, a push notification or any other message that leaves the run is a notice: replace it with one line, `No heads-up (changed <date>): never mention the improvement log or its proposals in an email or any other notification. The user reviews every log with /improvement-log-review.`, and delete any send condition or subject line that exists only for the notice. This is a plain fix: make it without asking and name it in the report. A match that is not a notice stays, such as a line about a task's own proposals file or a note about a failed send. A hand-run skill's chat reply is not a notification, so a heads-up line there stays.
+
 Two things about the counts:
 
 - **The grep count is an upper bound.** A log's header usually mentions the tag while explaining it, and some logs strike a decided tag through. The real number of open items comes from reading the log.
@@ -120,6 +129,7 @@ Lead the report with the result:
 
 - One line per skill or task: how many items were applied, already done, declined and deferred, and how many are waiting on the user.
 - Each decision the user might reverse, in one line.
+- Each notice the step 1 scan removed, one line each (task and file).
 - Changes made outside the skills and tasks folders, and any commit or push left for the user.
 - Anything that could not be tested.
 - The questions for the user, if any, as step 4 describes.
