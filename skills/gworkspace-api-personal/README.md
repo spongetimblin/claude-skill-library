@@ -1,6 +1,6 @@
 # gworkspace-api-personal
 
-A Claude Code skill that lets Claude write to your Google Sheets and edit your Google Docs, and attach Drive files to Calendar events, through a small Apps Script web app that you deploy from your own Google account. Claude's connectors can read Sheets and Docs but not change them; this fills that gap without giving Claude your password or a broad API key.
+A Claude Code skill that lets Claude write to your Google Sheets and edit your Google Docs, and attach Drive files to Calendar events, through a small Apps Script web app that you deploy from your own Google account. The Google Drive connector can read Sheets and Docs but not change them. Google's separate Sheets and Docs connectors can now edit them directly, so use those for one-off edits if your Claude account has them. This skill is for what they leave out: an audit log of every change, edits that refuse when the target doesn't match what you expected, Calendar attachments, and a command-line client that scripts and scheduled tasks can call. It does this without giving Claude your password or a broad API key.
 
 ## How it fits together
 
