@@ -19,6 +19,10 @@ Options
                     machine translation instead of the original-language captions
   --plain           paragraphs without timestamps
   --title TEXT      title for the header and file name when there is no URL metadata
+  --link URL        with --from-subs or --from-panel and no URL: the link to print in
+                    the header, with no metadata lookup (a site yt-dlp cannot read)
+  --byline TEXT     with --link: the header's second line, such as
+                    "Show name, November 9, 2026, length 2:21:12"
   --source TEXT     override the "Transcript source" line in the header
   --referer URL     pass a Referer to yt-dlp (embedded Vimeo/Wistia players)
 
@@ -290,9 +294,11 @@ def render(lines, chapters, header, plain, long):
     return "\n".join(out).rstrip() + "\n"
 
 
-def make_header(meta, url, source, title, speaker_marks=False):
+def make_header(meta, url, source, title, speaker_marks=False, byline=None):
     t = title or meta.get("title") or "Untitled video"
     h = [t]
+    if byline and not meta:
+        h.append(byline)
     bits = []
     who = meta.get("channel") or meta.get("uploader")
     if who:
@@ -346,7 +352,7 @@ def write_transcript(units, meta, url, source, args, out_dir, prefix=""):
     dur = meta.get("duration") or units[-1][0]
     long = dur >= 3600
     marks = any(u[1].strip().startswith(">>") for u in units)
-    header, title = make_header(meta, url, source, args.title, marks)
+    header, title = make_header(meta, url, source, args.title, marks, getattr(args, "byline", None))
     lines = group(units, chapters)
     text = render(lines, chapters, header, args.plain, long)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -397,6 +403,8 @@ def main():
     ap.add_argument("--from-subs")
     ap.add_argument("--from-panel")
     ap.add_argument("--title")
+    ap.add_argument("--link")
+    ap.add_argument("--byline")
     ap.add_argument("--source")
     ap.add_argument("--referer")
     args = ap.parse_args()
@@ -413,7 +421,7 @@ def main():
         else:
             units = units_from_panel(args.from_panel)
             source = args.source or "YouTube auto-generated captions, copied from the video's transcript panel"
-        info = write_transcript(units, meta, args.url, source, args, out_dir)
+        info = write_transcript(units, meta, args.url or args.link, source, args, out_dir)
         result("ok", 0, **info)
 
     if not args.url:

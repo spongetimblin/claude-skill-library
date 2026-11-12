@@ -86,7 +86,7 @@ If it is unclear whether a fix is safe, it is not. Report it.
 
 ## What to check
 
-**CLAUDE.md files (step 3).** Verify each checkable claim against the project: paths, file listings, commands, script names, counts. Look for rules that contradict each other or another CLAUDE.md that applies to the same sessions. If the `claude-md-audit` skill from this library is installed, use its audit steps to find problems, and skip its confirmation, commit and reflect steps. Decide what may be edited by "CLAUDE.md files: extra care" above, not by that skill's fixing rules.
+**CLAUDE.md files (step 3).** Verify each checkable claim against the project: paths, file listings, commands, script names, counts. Look for rules that contradict each other or another CLAUDE.md that applies to the same sessions. If the `claude-md-audit` skill from this library is installed, use its audit steps to find problems, and skip its confirmation, commit and reflect steps. Decide what may be edited by "CLAUDE.md files: extra care" above, not by that skill's fixing rules. Find the project files with a search that reaches cloud-synced folders: on a Mac, Spotlight indexes few files in a synced drive, so run `find` there too, pruning `node_modules`, `.git` and virtual environments (on one run Spotlight found 3 there and `find` 35).
 
 **Skills (step 4) and scheduled tasks (step 5).** Read-only unless the safe-fix rule allows the edit:
 

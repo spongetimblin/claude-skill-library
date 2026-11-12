@@ -101,9 +101,19 @@ Many course and membership sites embed a standard player (Wistia, Vimeo). When t
 - Wistia: `https://fast.wistia.net/embed/iframe/<id>`
 - Vimeo: `https://player.vimeo.com/video/<id>`, with `--referer "<the page's URL>"` when the video is restricted to its site. Plain `vimeo.com/<id>` links may need a login in yt-dlp; the player link often does not.
 
+## A Substack podcast post
+
+yt-dlp's Substack extractor has failed on a podcast post ("Unable to extract json string"), and the page held something better. The post's JSON has a `transcription` object with status `transcribed` and a signed `cdn_url` to a `transcription.json`: segments with start, end, text and a `SPEAKER_NN` label, plus `non_speech` entries for music. Convert the segments to an SRT with "Speaker N:" labels in a scratch folder, then format it with no lookup, taking the title, date and length from the post's JSON (`title`, `post_date`, `podcast_duration`):
+
+```bash
+python3 -I ~/.claude/skills/video-transcript/scripts/get_transcript.py --from-subs "<scratch folder>/episode.srt" --title "<post title>" --link "<post link>" --byline "<podcast>, <Month D, YYYY>, length <h:mm:ss>" --source "Substack's own transcript"
+```
+
+`--link` prints the link in the header without a metadata lookup, and `--byline` is the header's second line. When the post has no transcript, download the `podcast_url` audio and take the Whisper path.
+
 ## Step 3: report
 
-Lead with the result: the file's full path, the video's title and length, and where the text came from, since that sets how far to trust it. Creator captions are usually accurate; YouTube's auto-generated captions and Whisper misspell names and have no speaker names. Say if the lines stop well short of the video's length, if a different language or YouTube's translation was used, or if the browser or Whisper path was needed. Don't paste the transcript into chat unless asked.
+Lead with the result: the file's full path, the video's title and length, and where the text came from, since that sets how far to trust it. Creator captions are usually accurate; YouTube's auto-generated captions and Whisper misspell names and have no speaker names. Search the saved file for each surname in the title, and when the captions spell one differently, say how. For an interview or panel whose captions have no `>>` marks (creator captions never do), say that the speakers' turns run together and that a transcription of the audio with speaker labels would name them. Say if the lines stop well short of the video's length, if a different language or YouTube's translation was used, or if the browser or Whisper path was needed. Don't paste the transcript into chat unless asked.
 
 ## Reflect and improve (SUGGEST ONLY)
 
