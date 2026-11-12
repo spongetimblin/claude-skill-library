@@ -66,6 +66,7 @@ Without settings, the skill reads every folder named `Claude*` under `~/Library/
 | `apps` | Map of the app's data folder name under `~/Library/Application Support` to a label. Results from another copy of the app say "open it in the *label*". When set, only these folders are read. | Every folder named `Claude*`, labeled "*name* app". |
 | `scopes` | A list of scopes, described below. | None. |
 | `default_scope` | The scope for sessions and chats that match no scope. Ignored when `scopes` is empty. | None: they are in no scope, and only a search without a scope word finds them. |
+| `scope_aliases` | Map of another first word to the scope it means, such as `{"job": "work"}`. Each alias is one word, in any case, and each scope has to be a scope's name or the default scope. `--status` lists them under its table. | None: only a scope's own name selects it. |
 | `index` | Where the index file goes. | `data/search-index.db` in the skill folder. |
 | `keys_from` | A Markdown file to read the folder key and the topic key from, as described under "Keeping the keys in a Markdown file". `~` is allowed; a relative path is taken from the skill folder. `false` reads no file. | `~/.claude/CLAUDE.md`. It is skipped without a message when it has neither section. |
 | `folders` | Folder key entries, as a list of `{"emoji": "...", "path": "..."}`. The path is a full path, starting with `/` or `~`. | None. |
@@ -79,7 +80,7 @@ When any of the first six settings changes, the next search builds the index aga
 
 ### Scopes
 
-A scope is a named part of your sessions, such as work and everything else. With scopes defined, a search whose first word is a scope name (in any case) searches only that scope, and `--status` counts each scope in its own column. Without them, every word is a search word.
+A scope is a named part of your sessions, such as work and everything else. With scopes defined, a search whose first word is a scope name, or an alias from `scope_aliases` (in any case), searches only that scope, and `--status` counts each scope in its own column. Without them, every word is a search word.
 
 Each scope has a `"name"`, one word not starting with `-`, and any of these rules:
 

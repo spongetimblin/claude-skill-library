@@ -46,7 +46,8 @@ rule that matches it: its account, a piece of its folder path, the start of
 its scheduled task's id, or, for a chat, a list file that holds its id. What
 matches no scope goes to "default_scope", or to no scope when that is not set.
 A word is taken as a scope only when it comes first and config.json defines
-it; otherwise it is a search word like any other.
+it, as a scope's name or as an alias for one in "scope_aliases"; otherwise it
+is a search word like any other.
 
 A topic is an emoji from the user's keys, which pair emoji with folders and
 with subjects: a session is on a topic when it ran in one of its folders or
@@ -159,7 +160,7 @@ def emoji_in(word):
 
 # ---------------------------------------------------------------- settings
 
-KEYS = ("exports", "export_accounts", "accounts", "apps", "scopes", "default_scope", "index")
+KEYS = ("exports", "export_accounts", "accounts", "apps", "scopes", "default_scope", "scope_aliases", "index")
 RULES = ("accounts", "path_contains", "task_prefixes", "chat_lists")
 NO_SCOPE = "no scope"
 SCOPE_NAME = re.compile(r"[^\s-]\S*")   # one word, not starting with "-"
@@ -250,6 +251,20 @@ class Config:
             default = self.scopes[names.index(default.lower())]["name"]
         # A default scope with no scopes to fall back from would hold everything.
         self.default_scope = default if self.scopes else None
+        # Other first words that mean a scope, such as "job" for a scope named "work".
+        given = raw.get("scope_aliases")
+        if given is not None and not isinstance(given, dict):
+            raise ValueError('"scope_aliases" has to be an object, as {"alias": "scope name"}')
+        known = {n.lower(): n for n in self.scope_names()}
+        self.aliases = {}
+        for alias, name in (given or {}).items():
+            if not SCOPE_NAME.fullmatch(alias):
+                raise ValueError(f'the alias "{alias}" in "scope_aliases" has to be one word, not starting with "-"')
+            if not isinstance(name, str) or name.lower() not in known:
+                raise ValueError(f'"scope_aliases" gives "{alias}" a scope that is not defined; '
+                                 f'the scopes are {", ".join(known.values()) or "none"}')
+            if alias.lower() not in known:
+                self.aliases[alias.lower()] = known[name.lower()]
 
     def scope_names(self):
         """Every scope a session can be in, in order, the default scope last."""
@@ -843,9 +858,9 @@ def near_query(words, either=()):
 
 
 def scope_of(args):
-    """The scope the first word names, if config.json defines it, and the other words."""
+    """The scope the first word names, by name or by alias, if config.json defines it, and the other words."""
     words = list(args.words)
-    names = {n.lower(): n for n in CFG.scope_names()}
+    names = {**CFG.aliases, **{n.lower(): n for n in CFG.scope_names()}}
     scope = names.get(words[0].lower()) if words else None
     if scope:
         words.pop(0)
@@ -1115,6 +1130,8 @@ def show(db, args):
     print(f"{row['title']} · {SOURCES[row['source']]} · {day(row['updated'])} · {row['account']} account")
     if row["url"]:
         print(row["url"])
+    if row["cli_id"]:
+        print(f"Transcript id: {row['cli_id']}")
     print()
     stored = [t for t in re.split(r"\n\n(?=[▶◀] )", row["body"] or "") if t.strip()]
     wanted = [w.lower() for w in args.grep or []]
@@ -1193,6 +1210,9 @@ def status(db):
         print(f"| {SOURCES[r[0]]} | {r[1]} | " + " | ".join(str(v) for v in tuple(r)[2:]) + " |")
     bare = db.execute("SELECT count(*) FROM docs WHERE chars = 0").fetchone()[0]
     runs = db.execute("SELECT count(*) FROM docs WHERE scheduled != ''").fetchone()[0]
+    if CFG.aliases:
+        print("\nAlso taken as a scope when it is the first word: "
+              + ", ".join(f"{a} ({n})" for a, n in CFG.aliases.items()) + ".")
     print(f"\n{bare} have a title but no conversation text. "
           f"{runs} are scheduled-task runs, left out unless --runs is given.")
     off = chat_off()
