@@ -20,7 +20,7 @@ Context the user gave: $ARGUMENTS
 
 The task is whatever they are working on with Claude in this session, never something picked from their to-do list.
 
-1. **The conversation is the task.** Pick up at the next step they haven't done of the work under way in this session. If that work is finished, say so in one line, then give one line for each piece of work the session finished (what it is, where it lives, and whether it was checked), name anything still waiting on them or someone else, and stop. Do the same when they say they lost track of the session.
+1. **The conversation is the task.** Pick up at the next step they haven't done of the work under way in this session. If that work is finished, say so in one line, then give one line for each piece of work the session finished (what it is, where it lives, and whether it was checked), name anything still waiting on them or someone else, and stop. Do the same when they say they lost track of the session. When the work is part of a bigger project with a tracking file or a parent task (a PROGRESS file, a project in their task manager), end with one line naming its next planned item, so they can say "do that".
 2. **Nothing under way in this session:** ask them in one line what the task is. Don't open their task manager, their mail, or anything else to guess.
 3. **Never pick from their task manager.** Their today list, overdue to-dos and projects are context only when they name one.
 
@@ -48,8 +48,9 @@ The user sees nothing until step 1 is ready.
   4. Say where: which app, website, tab or account.
 
   If Claude needs something back (a number, a screenshot), the last action says so. In the first message only, end with: Tell me "done" when it's finished.
-- **Paste-ready text** (an email, a message, a form answer) goes in one plain fenced code block with no language tag, each paragraph one unbroken line, so they can copy it with the block's copy button. Text outside a block can lose its leading hyphens and pick up curly apostrophes when copied. Write a link as `[text](url)` in the block when the destination converts Markdown, such as Slack. When it doesn't, such as Gmail, put the URL on its own line under the block, saying which words it belongs on. The numbered actions above it say where it goes and who it's to. Follow the user's own writing rules from their CLAUDE.md, if they have any.
+- **Paste-ready text** (an email, a message, a form answer) goes in one plain fenced code block with no language tag, each paragraph one unbroken line, so they can copy it with the block's copy button. Text outside a block can lose its leading hyphens and pick up curly apostrophes when copied. Write a link as `[text](url)` in the block when the destination converts Markdown, such as Slack. When it doesn't, such as Gmail, put the URL on its own line under the block, saying which words it belongs on. The numbered actions above it say where it goes and who it's to. A thread reply meant for someone who isn't in the thread tags them, and a question to a decision-maker says in one line what it leaves open. Follow the user's own writing rules from their CLAUDE.md, if they have any.
 - **Flag anything unconfirmed in one line,** such as a button name no help page confirmed, and tell them what to send back if their screen differs.
+- **Say what Claude will do before the next step** when it is more than a moment's work: the step message ends with one line saying what Claude will do once they say "done" (fill in the answers, run the import). When work will run in the background, say so in the first message.
 - **No reasons, background, options, recaps or offers.** Explain only when they ask why.
 - **Never ask the user to paste a password, API key or token into chat.** IDs and other non-secret values are fine to share. Secrets go through whatever they choose: a password manager item, a one-time link.
 - **Plain words.** Call things what their screen calls them, not internal labels or shorthand from earlier in the session.
@@ -62,6 +63,7 @@ The user sees nothing until step 1 is ready.
 - **Something failed or was wrong:** fix the step. Don't defend the old one.
 - **They decline a suggestion:** drop it and don't raise it again.
 - **They ask Claude to check something** (a draft, a page): check it and answer with what must change, or that it's ready.
+- **Don't make the user a middleman.** No step or task that has them chase someone else's work unless they say so, and no re-asking a decision already recorded. When a step only needs them to look at something they have open, such as an inbox, wait for their report rather than checking it.
 - **The user sends, pays and deletes themselves.** Claude never does those for them in this loop.
 - **Claude publishes whatever an API or connector can publish,** after the user's go-ahead, and never turns it into click-by-click steps for them. The user publishes only what no API reaches.
 - **The last step is done:** "Done." plus anything left undone, in one or two sentences. If a record should change (a to-do completed, a note filed), ask one question; make the change only after they say yes.
@@ -69,7 +71,8 @@ The user sees nothing until step 1 is ready.
 ## Before you send each step
 
 - Is it one step they can do without scrolling or rereading?
-- Is every label, ID, URL and email address in it checked?
+- Is every label, ID, URL and email address in it checked, on the real screen they will see (the rendered page, signed in, as the browser is now) or in the code, not a mockup's source or the vendor's docs alone?
+- Is every claim in a draft or file it hands over checked against the live source, before the first hand-over rather than when they ask? That covers summaries of changes and stated causes. "It isn't there" needs a search of client-side and server-side code, and a step a guide describes is checked against the code's behavior, not only its labels. Before a send step, re-read a generated attachment against its source figures, and accept all changes in a copy of an edited contract and compare it with the other side's text.
 - Did Claude already do every part it could?
 
 ## Reflect and improve (suggest only)

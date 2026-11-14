@@ -59,7 +59,7 @@ def classify_error(err):
     e = err.lower()
     if "429" in e or "too many requests" in e or "not a bot" in e or "page needs to be reloaded" in e:
         return "blocked"
-    if any(s in e for s in ("sign in", "members-only", "member", "private video", "login", "age", "cookies")):
+    if any(s in e for s in ("sign in", "members-only", "member", "private video", "login", "your age", "age-restricted", "age restricted", "cookies")):
         return "needs_signin"
     return "error"
 
