@@ -1,6 +1,6 @@
 # done
 
-A Claude Code skill for leaving a session with nothing forgotten. Type `/done` and Claude goes back through the session: every request you made, every step it gave you, every question left open, and everything it said it would do. It confirms each one at its source, then answers "Yes, you're done for now" or "Not yet", followed by what still needs you, what is waiting on someone else, and what it couldn't check. It reports only, and changes nothing except its own log.
+A Claude Code skill for leaving a session with nothing forgotten. Type `/done` and Claude goes back through the session: every request you made, every step it gave you, every question left open, and everything it said it would do. It confirms each one at its source, then answers "✅ Yes, you're done for now" or "Not yet", followed by what still needs you, what is waiting on someone else, and what it couldn't check. It reports only, and changes nothing except its own log.
 
 You can add context: `/done sent: <link>`, `/done with the billing work`, or `/done skip the deploy check`.
 
