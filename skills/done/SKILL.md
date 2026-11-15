@@ -27,7 +27,7 @@ Count anything they say they did, and check it where you can. Leave out anything
 
 ## Reply
 
-Line one is the verdict. "✅ Yes, you're done for now." means nothing needs him; always start it with the ✅, which is his visual cue that he can leave. Otherwise, write "Not yet." Never open with yes when something needs him, however small. If a question of his went unanswered, answer it right after the verdict.
+Line one is the verdict. "✅ Yes, you're done for now." means nothing needs them; always start it with the ✅, which is their visual cue that they can leave. Otherwise, write "Not yet." Never open with yes when something needs them, however small. If one of their questions went unanswered, answer it right after the verdict.
 
 Then give these groups, leaving out any that are empty:
 
