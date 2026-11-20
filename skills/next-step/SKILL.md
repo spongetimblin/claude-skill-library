@@ -32,7 +32,7 @@ The user sees nothing until step 1 is ready.
 2. **Fill gaps from the sources, not from the user.** Their mail, calendar and cloud drive where connected, their task manager, files on this computer, the relevant folder's CLAUDE.md and reference files, and the web for vendor or government how-tos. Ask the user only for what no source has. Stay out of anything their CLAUDE.md marks as off limits.
 3. **Work out what "done" means and every step to get there.** Don't show them the list.
 4. **Do every step Claude can do itself, now.** Drafts, file edits, lookups, Google Sheet and Doc updates (the Google Sheets and Docs connectors, or the `gworkspace-api-personal` skill in this library, if installed). What's left for the user is what needs their hands: logging in, clicking in an app or website, phone calls, payments, sending.
-5. **Verify what each step depends on.** Exact button and field labels (the vendor's help pages, or a screenshot they sent), account and confirmation numbers, URLs, recipients, amounts. For an Apple feature, when a support.apple.com guide page comes back without its steps, a web search limited to support.apple.com finds them; when a label can't be confirmed for their OS version, say which version the source covers when you flag it.
+5. **Verify what each step depends on.** Exact button and field labels (the vendor's help pages, or a screenshot they sent), account and confirmation numbers, URLs, recipients, amounts. Check a vendor, registrar or service a step names against what the user already uses (receipts in the mail, the project's CLAUDE.md, a sister project's records), or ask in one line; a public record alone can name the wrong one. For an Apple feature, when a support.apple.com guide page comes back without its steps, a web search limited to support.apple.com finds them; when a label can't be confirmed for their OS version, say which version the source covers when you flag it.
 6. **Ask only what would change the steps.** If a decision is the user's and it changes what they'll do, ask it before step 1: one question, options one per line, recommendation first. Decide everything else and mention a choice only if they might reverse it.
 
 ## How to talk to the user
@@ -45,25 +45,29 @@ The user sees nothing until step 1 is ready.
   1. One action per line, in the order they'll do them.
   2. Screen labels in **bold**, exactly as they appear on their screen: **Settings > Billing**, **Save**.
   3. Values to type in `code`, ready to copy.
-  4. Say where: which app, website, tab or account.
+  4. Say where: which app, website, tab or account. Name an account by its address, and when a vendor has several accounts, check the account switcher and name the right one.
 
   If Claude needs something back (a number, a screenshot), the last action says so. In the first message only, end with: Tell me "done" when it's finished.
 - **Paste-ready text** (an email, a message, a form answer) goes in one plain fenced code block with no language tag, each paragraph one unbroken line, so they can copy it with the block's copy button. Text outside a block can lose its leading hyphens and pick up curly apostrophes when copied. Write a link as `[text](url)` in the block when the destination converts Markdown, such as Slack. When it doesn't, such as Gmail, put the URL on its own line under the block, saying which words it belongs on. The numbered actions above it say where it goes and who it's to. A thread reply meant for someone who isn't in the thread tags them, and a question to a decision-maker says in one line what it leaves open. Follow the user's own writing rules from their CLAUDE.md, if they have any.
-- **Flag anything unconfirmed in one line,** such as a button name no help page confirmed, and tell them what to send back if their screen differs.
+- **Flag anything unconfirmed in one line,** such as a button name no help page confirmed, and tell them what to send back if their screen differs. When a draft for someone else (an email, a guide) depends on a screen no help page confirms, ask for a screenshot or recording of that screen before the send step, instead of flagging it afterwards.
 - **Say what Claude will do before the next step** when it is more than a moment's work: the step message ends with one line saying what Claude will do once they say "done" (fill in the answers, run the import). When work will run in the background, say so in the first message.
+- **Before opening a banking, payroll or other money app in the user's browser,** say in one line which screen Claude is opening and that nothing will be entered.
 - **No reasons, background, options, recaps or offers.** Explain only when they ask why.
-- **Never ask the user to paste a password, API key or token into chat.** IDs and other non-secret values are fine to share. Secrets go through whatever they choose: a password manager item, a one-time link.
+- **Never ask the user to paste a password, API key or token into chat.** IDs and other non-secret values are fine to share. Secrets go through whatever they choose: a password manager item, a one-time link. A step that leads to a page showing a token or key says not to screenshot it.
 - **Plain words.** Call things what their screen calls them, not internal labels or shorthand from earlier in the session.
 
 ## The loop
 
 - **"done", "what's next" or similar:** the next step, nothing else.
+- **A step changed something Claude can read from outside** (a DNS record, a live page, a public file): confirm it before sending the next step, retrying for up to two minutes, and say in that step that it was checked. Use the address the site now serves, such as HTTPS once a certificate is live.
 - **A screenshot or a question:** answer it first in a sentence or two ("Yes, those permissions are right."), then say where to pick up.
 - **They change the plan** ("I have to use onetimesecret, not 1Password"): adjust the remaining steps and keep going without comment.
+- **Other work interrupts the walk-through:** end each reply to that work with one line naming the step still waiting on the user.
 - **Something failed or was wrong:** fix the step. Don't defend the old one.
 - **They decline a suggestion:** drop it and don't raise it again.
 - **They ask Claude to check something** (a draft, a page): check it and answer with what must change, or that it's ready.
 - **Don't make the user a middleman.** No step or task that has them chase someone else's work unless they say so, and no re-asking a decision already recorded. When a step only needs them to look at something they have open, such as an inbox, wait for their report rather than checking it.
+- **Claude's browser work goes in a tab of its own** when the user is using the Browser pane, never the tab the user is signing in or working in.
 - **The user sends, pays and deletes themselves.** Claude never does those for them in this loop.
 - **Claude publishes whatever an API or connector can publish,** after the user's go-ahead, and never turns it into click-by-click steps for them. The user publishes only what no API reaches.
 - **The last step is done:** "Done." plus anything left undone, in one or two sentences. If a record should change (a to-do completed, a note filed), ask one question; make the change only after they say yes.
@@ -71,9 +75,12 @@ The user sees nothing until step 1 is ready.
 ## Before you send each step
 
 - Is it one step they can do without scrolling or rereading?
-- Is every label, ID, URL and email address in it checked, on the real screen they will see (the rendered page, signed in, as the browser is now) or in the code, not a mockup's source or the vendor's docs alone?
-- Is every claim in a draft or file it hands over checked against the live source, before the first hand-over rather than when they ask? That covers summaries of changes and stated causes. "It isn't there" needs a search of client-side and server-side code, and a step a guide describes is checked against the code's behavior, not only its labels. Before a send step, re-read a generated attachment against its source figures, and accept all changes in a copy of an edited contract and compare it with the other side's text.
-- Did Claude already do every part it could?
+- Is every label, ID, URL and email address in it checked, on the real screen they will see (the rendered page, signed in, as the browser is now) or in the code, not a mockup's source or the vendor's docs alone? When a form is wider than the Browser pane shows, the step says to widen the pane first.
+- When Claude can't see the signed-in screen, does the step hold whatever state the account is in? Cover both states in one line ("if you already have sites there, open the site menu and choose **Add**; otherwise the welcome page shows the same choice"), and never say what a field already contains.
+- Is every claim in a draft or file it hands over checked against the live source, before the first hand-over rather than when they ask? That covers summaries of changes and stated causes. "It isn't there" needs a search of client-side and server-side code, and a step a guide describes is checked against the code's behavior, not only its labels. Before calling a message missing, have the user check Spam, which the mail connector's search leaves out, or say the search could not see it. "I haven't found a statement" needs a look at the organization's own newsroom page, not only a site-restricted search. Before a send step, re-read a generated attachment against its source figures, and accept all changes in a copy of an edited contract and compare it with the other side's text. Read back a draft Claude made in the mail app before its send step: the mail connector can store a link as a redirect link, so when one is there, say so in the step.
+- Does a draft ask only the questions whose answers change the work? Cut the rest, and leave an optional ask out unless the user confirms it.
+- Before a step or draft asks anyone to delete or rotate a key or token, has Claude checked who created it and whether it still exists?
+- Did Claude already do every part it could? That includes fixing what it found instead of listing it or asking about a trivial fix.
 
 ## Reflect and improve (suggest only)
 

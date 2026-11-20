@@ -1121,7 +1121,8 @@ def pick(db, args, problems):
 
 
 def show(db, args):
-    by = "d.id" if args.show.isdigit() else "d.key"   # an id from --titles, or a key from a result
+    # an id from --titles, the bare session id that --open takes, or a key from a result
+    by = "d.id" if args.show.isdigit() else "d.session_id" if args.show.startswith("local_") else "d.key"
     row = db.execute("SELECT d.*, fts.body AS body FROM docs d JOIN fts ON fts.rowid = d.id "
                      f"WHERE {by} = ?", (args.show,)).fetchone()
     if row is None:
@@ -1250,7 +1251,7 @@ def main():
     ap.add_argument("--pick", nargs="+", type=int, metavar="ID",
                     help="print the sessions with these ids from --titles as a result list")
     ap.add_argument("--label", metavar="TEXT", help="with --pick: what was being looked for")
-    ap.add_argument("--show", metavar="KEY", help="print what was said in one session, by key or by id")
+    ap.add_argument("--show", metavar="KEY", help="print what was said in one session, by key, by id, or by the session id --open takes")
     ap.add_argument("--grep", nargs="*", metavar="WORD",
                     help="with --show: only turns with these words. With --pick: show the text near them")
     ap.add_argument("--max-chars", type=int, default=8000)

@@ -247,6 +247,6 @@ search.py --status
 search.py --rebuild
 ```
 
-TOPIC is an emoji from the keys. `--topic TOPIC`, anywhere on the line, also takes a word from the keys or `untagged`. `--limit` is 8 per source, or 30 for a topic given with no words.
+TOPIC is an emoji from the keys. `--topic TOPIC`, anywhere on the line, also takes a word from the keys or `untagged`. `--limit` is 8 per source, or 30 for a topic given with no words. `--show` takes a key from a result's IDS block, an id from `--titles`, or the bare session id that `--open` takes.
 
 Exit codes: 0 fine, 1 a key or id that matched no session, a session that could not be opened, or no topic keys to list by, 2 bad usage, a `config.json` that could not be used, or a topic that matched nothing or more than one thing.
