@@ -28,7 +28,7 @@ In a worktree session the script opens the worktree's files, which is right: tha
 | `OPENED <file>` | Reply with one sentence naming the file relative to the project folder, such as "Opened `public/index.html` in Chrome." Nothing else. |
 | `AMBIGUOUS <why>`, then candidates | Nothing opened. Ask the user which one, with the candidates one per line. Run the script again with the chosen one as the page. |
 | `NONE <why>` | Nothing opened. Say so in one sentence. |
-| `NEEDS_SERVER <config file>` | Nothing opened. A generator or bundler builds the project (Hugo, Jekyll, Vite and others), so its pages do not work as local files, and an `index.html` in its output folder is a stale build. Say that in one sentence and name the dev command when the project makes it plain (`hugo server`, the `dev` script in `package.json`). Do not start the server unless the user asks. |
+| `NEEDS_SERVER <config file>` | Nothing opened. A generator or bundler builds the project (Hugo, Jekyll, Vite and others), or a Node app serves it (a `dev` or `start` script in package.json), so its pages do not work as local files, and an `index.html` in its output folder is a stale build. Say that in one sentence and name the dev command when the project makes it plain (`hugo server`, the `dev` script in `package.json`). Do not start the server unless the user asks. |
 | `ERROR <message>` | Report the message. |
 
 ## Limits

@@ -814,7 +814,11 @@ def export_note(db):
     newest = json.loads(get(db, "newest_exports") or "{}")
     bits, old = [], []
     for account, name in newest.items():
-        taken = datetime.strptime(name, "%Y.%m.%d")
+        try:
+            taken = datetime.strptime(name, "%Y.%m.%d")
+        except ValueError:   # a folder named for a day that does not exist, such as 2026.11.31
+            bits.append(f"{account} {name} (the folder name is not a real date; rename it)")
+            continue
         age = (datetime.now() - taken).days
         bits.append(f"{account} {taken.strftime('%b %-d')}")
         if age > STALE_EXPORT_DAYS:
@@ -891,11 +895,13 @@ def topic_of(db, args, words, problems):
         print(MISSING_SESSIONS)
         return 1
     folders, topics, key_problems = SESSIONS.read_keys(CFG.topics)
+    # Reported even when the emoji turns out to be no topic: a key line that could
+    # not be read, or a keys file that is not there, is the likely reason.
+    problems += key_problems
     if not topics:
         if asked is None:
             return None, words
         print(SESSIONS.setup_message())
-        problems += key_problems
         return 1
     key, why = SESSIONS.resolve(asked if asked is not None else lead, topics)
     if why and asked is None:
@@ -905,7 +911,6 @@ def topic_of(db, args, words, problems):
         return 2
     if asked is None:
         words = words[1:]
-    problems += key_problems
     held = SESSIONS.load(problems)
     want = None if key == SESSIONS.UNTAGGED else key
     on_topic = [(s.id,) for s in held
@@ -1141,7 +1146,11 @@ def show(db, args):
     for t in turns:
         who = "User" if t.startswith(USER.strip()) else "Claude"
         text = t[1:].strip()
-        text = text if len(text) <= 1500 or not wanted else text[:1500] + " […]"
+        if wanted and len(text) > 1500:
+            # The stretch around the first grep word, which can sit past the first 1,500 characters.
+            at = min(text.lower().find(w) for w in wanted)
+            start = max(0, min(at - 300, len(text) - 1500))
+            text = ("[…] " if start else "") + text[start:start + 1500] + (" […]" if start + 1500 < len(text) else "")
         piece = f"{who}: {text}\n"
         if len(piece) > left:
             print(piece[:left] + "\n[cut short; raise --max-chars or add --grep WORD]")
@@ -1260,7 +1269,7 @@ def main():
     ap.add_argument("--open", metavar="SESSION_ID", help="show a Claude Code session in the app")
     ap.add_argument("--status", action="store_true", help="what the index holds")
     ap.add_argument("--rebuild", action="store_true", help="build the index again from nothing")
-    args = ap.parse_args()
+    args = ap.parse_intermixed_args()   # words may come before and after options
 
     if args.open:
         return open_session(args.open)

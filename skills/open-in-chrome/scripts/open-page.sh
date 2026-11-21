@@ -75,6 +75,14 @@ for f in hugo.toml hugo.yaml hugo.yml hugo.json config/_default _config.yml \
   [ -e "$f" ] && { generator="$f"; break; }
 done
 [ -z "$generator" ] && [ -f config.toml ] && [ -d content ] && generator="config.toml"
+# A Node app serves its own pages (an API, or a framework's dev server), so its
+# HTML does not work as a local file either. Checked here and one folder down,
+# where check-this-out keeps its Next.js app.
+if [ -z "$generator" ]; then
+  for f in package.json */package.json; do
+    [ -f "$f" ] && grep -Eq '"(dev|start)"[[:space:]]*:' "$f" && { generator="$f"; break; }
+  done
+fi
 if [ -n "$generator" ]; then
   echo "NEEDS_SERVER $generator"
   exit 0

@@ -283,7 +283,7 @@ def render(lines, chapters, header, plain, long):
             out.append("")
             ci += 1
         spk = f"{l['spk']}: " if l["spk"] and l["spk"] != last_spk else ""
-        last_spk = l["spk"] or last_spk
+        last_spk = l["spk"]
         if plain:
             if spk or len(para) >= 6 or l["text"].startswith(">>"):
                 flush()
@@ -304,11 +304,15 @@ def make_header(meta, url, source, title, speaker_marks=False, byline=None):
     if who:
         bits.append(who)
     d = meta.get("upload_date") or meta.get("release_date")
-    if d:
-        try:
-            bits.append(datetime.strptime(d, "%Y%m%d").strftime("%B %-d, %Y"))
-        except ValueError:
-            pass
+    stamp = meta.get("timestamp") or meta.get("release_timestamp")
+    try:  # yt-dlp's dates are UTC; the timestamp gives this Mac's local date, as YouTube shows it
+        bits.append(datetime.fromtimestamp(stamp).strftime("%B %-d, %Y"))
+    except (TypeError, ValueError, OverflowError, OSError):
+        if d:
+            try:
+                bits.append(datetime.strptime(d, "%Y%m%d").strftime("%B %-d, %Y"))
+            except ValueError:
+                pass
     if meta.get("duration"):
         bits.append("length " + ts(meta["duration"], meta["duration"] >= 3600))
     if bits:

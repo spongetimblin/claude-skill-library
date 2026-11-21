@@ -34,6 +34,7 @@ Then give these groups, leaving out any that are empty:
 - **Needs you:** exact steps, in order.
 - **Waiting on others:** who, what, and where the reminder is.
 - **Couldn't check:** what, and why, only where the answer could change the verdict. A step reported as done that cannot be read back goes here only, and does not change the verdict.
+- **Safe to delete:** each file or folder in `~/Downloads` or on the Desktop that he handed to this session, or that the session wrote there, and that is now filed, sent or a copy of something in Gmail. Full path, one per line. If one should be kept, say which and why.
 
 Leave out suggestions, polish, and anything optional. List only what the work they asked for requires.
 

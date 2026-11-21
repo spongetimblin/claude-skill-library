@@ -46,6 +46,8 @@ In the SCOPE lines, SCOPE stands for a scope name from `config.json`, if any are
 
 Put each argument in its own quotes when it has a space, an apostrophe or an emoji in it.
 
+Write an amount as it appears but without its $ (`search.py 1,250` finds \$1,250): the shell drops a $ and the digits after it, even inside double quotes. A word that starts with a dash, such as a command-line flag, goes last, after `--`, or the script takes it as one of its own options: `search.py --since 2026-09-01 -- --no-verify`
+
 | The user asks for | Add |
 |---|---|
 | more than 8 results per source, or more than the 30 a topic alone shows | `--limit N` |

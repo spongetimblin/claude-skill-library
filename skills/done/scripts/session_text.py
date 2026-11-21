@@ -23,6 +23,7 @@ import os
 import re
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECTS = Path.home() / ".claude" / "projects"
@@ -50,11 +51,41 @@ def text_of(content):
     return ""
 
 
+def queued_text(entry):
+    """A message the user typed while Claude was working. The app stores it as a
+    queued_command attachment, not a user record. Task notifications and anything the
+    app marks as not typed by a person come back empty."""
+    queued = entry.get("attachment") or {}
+    if queued.get("type") != "queued_command" or queued.get("commandMode") != "prompt" or queued.get("isMeta"):
+        return ""
+    origin = queued.get("origin")
+    if isinstance(origin, dict) and origin.get("kind") not in (None, "human"):
+        return ""
+    return SKIP_TAGS.sub("", text_of(queued.get("prompt"))).strip()
+
+
 def shorten(text, limit):
     if len(text) <= limit:
         return text
     head, tail = limit * 2 // 3, limit // 3
     return f"{text[:head]}\n[... {len(text) - head - tail} characters cut ...]\n{text[-tail:]}"
+
+
+def one_line(text, width):
+    """One line of at most width characters, keeping the start and the end, where an ask often is."""
+    line = " ".join(text.split())
+    if len(line) <= width:
+        return line
+    tail = width // 3
+    return f"{line[:width - tail - 7]} [...] {line[-tail:]}"
+
+
+def local_time(stamp):
+    """The transcript's times are UTC; show this Mac's local time, so "today" and "tomorrow" read right."""
+    try:
+        return datetime.strptime(stamp, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
+    except ValueError:
+        return stamp
 
 
 def main():
@@ -76,6 +107,11 @@ def main():
                 continue
             if entry.get("subtype") == "compact_boundary":
                 last_summary = len(turns)
+            if entry.get("type") == "attachment" and not entry.get("isSidechain"):
+                text = queued_text(entry)
+                if text:
+                    turns.append((entry.get("timestamp", "")[:16], "USER", text))
+                continue
             if entry.get("type") not in ("user", "assistant"):
                 continue
             if entry.get("isSidechain") or entry.get("isMeta") or entry.get("isCompactSummary"):
@@ -85,6 +121,7 @@ def main():
                 turns.append((entry.get("timestamp", "")[:16], entry["type"].upper(), text))
 
     shown = turns if args.all else turns[:last_summary]
+    shown = [(local_time(stamp), role, text) for stamp, role, text in shown]
     if not shown:
         print("Nothing in this session was summarized, so every turn is already in context.")
         return
@@ -99,9 +136,12 @@ def main():
     users = [(stamp, text) for stamp, role, text in shown if role == "USER"]
     print(f"{len(full):,} characters is too long to print, so all {len(shown)} turns are saved in:\n{out}\n"
           f"Read or grep that file for Claude's side. The user's {len(users)} messages, one line each:\n")
+    # As wide as fits under PRINT_LIMIT, from --max-chars down to LIST_CHARS.
+    width = max(LIST_CHARS, args.max_chars)
+    while width > LIST_CHARS and sum(len(stamp) + 4 + min(len(" ".join(t.split())), width) for stamp, t in users) > PRINT_LIMIT:
+        width -= 20
     for stamp, text in users:
-        line = " ".join(text.split())
-        print(f"[{stamp}] {line if len(line) <= LIST_CHARS else line[:LIST_CHARS - 3] + '...'}")
+        print(f"[{stamp}] {one_line(text, width)}")
 
 
 if __name__ == "__main__":
