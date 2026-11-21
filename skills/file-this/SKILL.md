@@ -52,7 +52,7 @@ Fill these in before the first run.
    - One item: the folder and the new name, each on its own line, then one or two short reasons, then an alternative only if there is a real one.
    - Several items: one table (now, move to, rename to), then any notes.
    - Say plainly what you could not tell, such as who a doctor is or which product a photo shows.
-6. **When the user says to do it:** check that the destination does not already exist, move with `mv -n`, rename, and list the result. Remove a folder the move emptied with `rmdir`, which fails if anything is left. Search for references to the old path in notes and docs and fix them. Report what moved and what was fixed.
+6. **When the user says to do it:** check that the destination does not already exist, then move and rename each item in one command, `mv -n "<source>" "<folder>/<new name>"`, confirm the source is gone, and list the result. On macOS, `mv -n` silently skips a name that is already taken and still exits 0, so a separate rename after it can rename the file that was already there. Remove a folder the move emptied with `rmdir`, which fails if anything is left. Search for references to the old path in notes and docs and fix them. Report what moved and what was fixed.
 7. **Add a line to `places.md`** when the filing shows where a kind of thing goes. One line each; no line for a one-off.
 
 ## What to report

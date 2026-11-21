@@ -83,7 +83,7 @@ The same proposal raised in several entries is one item. Decide it once and mark
 - reverse something the user decided (an entry marked DECIDED or DECLINED, or a CLAUDE.md rule), or add or change a rule in a CLAUDE.md;
 - turn on a preference of the user's that nothing in the log or the rules settles.
 
-These items stay `AWAITING REVIEW`. Put them to the user at the end in one message: one line per item, with the recommended answer first. Everything else gets decided without them.
+These items stay `AWAITING REVIEW`. Put them to the user at the end in one message: one line per item, with the recommended answer first. If the user answers only some of them, ask again with each remaining item and its recommended answer on its own line. Everything else gets decided without them.
 
 ## 5. Apply
 
