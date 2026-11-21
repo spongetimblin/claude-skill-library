@@ -115,8 +115,8 @@ When steps 1 to 7 are done and budget is left:
 
 1. An agent that has not read the first agents' notes rechecks every change the night made against the safe-fix rule. A change that fails it is restored from `maintenance/before/` and reported.
 2. Turn the highest-ranked open findings into patch files in `maintenance/patches/`, each with the command that shows the problem and its output after the patch is applied to a copy.
-3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, wording that no longer matches what the thing does, and notable improvements. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
-4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated. A finding that calls something broken is reproduced from the thing itself when a read-only check can do it (run the failing command, load the page on the local stack), not reasoned from the code; "probably broken" is not a finding. One such finding on the second run could have been reproduced overnight and was not.
+3. Review each asset once in more depth, read-only, the one reviewed longest ago first: bugs, speed, accessibility, security, wording that no longer matches what the thing does, and notable improvements. This covers the assets the first pass skipped as unchanged, which is what keeps maintenance going once the changed ones are done. Findings and patches only. Every agent doing this reads `_briefs/read-only-review.md` first.
+4. **Verify before reporting.** Independent verifiers, which have not read the reviewers' notes, try to disprove every serious finding from primary evidence. A finding that does not hold is corrected or dropped before the report is written. On the second run, 200 were re-checked: none wrong, 5 overstated. A finding that calls something broken is reproduced from the thing itself when a read-only check can do it (run the failing command, load the page on the local stack), not reasoned from the code; "probably broken" is not a finding. One such finding on the second run could have been reproduced overnight and was not. Every finding about the user's money gets this second check, whatever its size, and before one is raised, search the user's records for a decision already made about it (the skill's own log or state, a note in the file, recent sessions). On one run a verifier overturned an account projection that was built on a stale amount and that the user had settled days earlier.
 5. **Review every patch that changes behavior.** A second agent reads each one against the code and applies it to a copy. A patch that is not sound is revised or withdrawn. On the second run, 117 were reviewed and 6 revised.
 6. **Write `maintenance/only-you-can-check.md`:** one page of what only the user can check, such as anything on a phone, anything to listen to, and anything behind a sign-in.
 
@@ -133,6 +133,8 @@ The exact lines and times are in "Budget and models" in `SKILL.md`. In short, wh
 - **A `stop by <time>` in the invocation.** That time takes the reset's place: the same lines, worked back from it.
 
 The user's wake time is not a stop.
+
+Running out of changed assets is not a stop either. When every asset that changed since its last check has been covered, the second pass keeps reviewing the unchanged ones, the one checked longest ago first, until one of the stops above. On one run the night ended at 1:45am for this reason, with two and a half hours and part of the budget unused. A run is meant to use what is left before the weekly limit resets.
 
 ## The maintenance ledger
 
@@ -165,5 +167,7 @@ One section per asset, in this format:
 - **Checked and clean:** one line per step with counts.
 - **Not checked, and why.**
 - **Where it stopped:** the step, the time, and the weekly percent used.
+
+One screen means about 500 words at most. Count them before the hand-off, and move what does not fit to `maintenance/all-findings.md`. One run's report came back at about 1,100 words; the two before it fit in about 500.
 
 Every other finding goes in `maintenance/all-findings.md`, ranked, one line each.

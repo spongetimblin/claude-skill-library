@@ -23,7 +23,7 @@ What this surprise run produced, and what has become of each item since. Written
 - **When:** started <date and time>; morning message <date and time>.
 - **Asked for:** <the hint the user gave, or "no hint">.
 - **Models:** <main thread>; <what the agents ran on, and any switch>.
-- **Usage:** 5-hour / weekly all models / weekly top model at the start <x% / y% / z%> and at the end <x% / y% / z%>.
+- **Usage:** weekly all models / weekly top model at the start <x% / y%> and at the end <x% / y%>.
 - **Interruptions:** <sleep, limits, failures, or "none">.
 - **This folder:** <where it was created, and any move since, with dates>.
 

@@ -17,6 +17,8 @@ Type `/surprise` before bed, optionally with a hint (`/surprise something for th
 
 A run spends all of your remaining weekly usage unless you limit it. It builds up to five items, then spends the rest on maintenance of what you already have: your apps, MCP servers, skills, scheduled tasks and websites. Edits and the morning report are finished by 97% of the weekly limit, and read-only review runs to 100%. The run ends before your weekly limit resets and spends nothing after it. `/surprise light` or `/surprise stop at 60%` limits a run, and `no maintenance` skips the maintenance.
 
+The budget rules are written for a plan whose limits are weekly: one for all models and one for the top model. If your plan has another limit, such as a 5-hour one, the skill tells you so at preflight and has no rule for it.
+
 Maintenance may change files outside the run folder, but only within the safe-fix rule in `reference/maintenance.md`: a factual correction in a doc, or a bug fix proved by a command. Read that rule first, and make maintenance report-only there if you prefer.
 
 Run it in Bypass permissions mode, or the first permission prompt stalls the whole night. That is a lot of trust to extend, which is why the rules in `SKILL.md` and `reference/agent-rules.md` exist. Read them before the first run, and keep the computer plugged in with the lid open.

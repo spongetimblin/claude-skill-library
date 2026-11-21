@@ -54,13 +54,19 @@ These hold from the start of a run until the report is sent. What changes once t
 - Run an app's main action, installer or deploy step: no sending email, no scraping, no migrations, no loading or unloading LaunchAgents or services.
 - Change anything outside the app's own folder, apart from this skill's ledger and improvement log. LaunchAgents, Claude Desktop's config and the user's shell profile are read-only here.
 - Print, log or copy the value of a key, token or password. Name the file, the line and the variable only.
-- Change an app's data files (state files, logs, exported archives, databases).
+- Change an app's data files (state files, logs, exported archives, databases). The one exception is the rolled-back write in step G, which leaves nothing behind.
 
 ## 1. Find the apps
 
 List every app with its git state. For each app folder, print its git repo path, current commit (`git rev-parse --short HEAD`), last commit date, the number of uncommitted files (`git status --short | wc -l`) and unpushed commits (`git log --oneline @{u}..`), or `NO GIT` with the date of its newest file. Read the folder as it is now, so a new app is picked up automatically. When looking for an app's repo, accept a `.git` file as well as a `.git` folder: a repo whose git data was moved elsewhere (with `git init --separate-git-dir`, say, to keep it out of a synced folder) has a one-line `.git` pointer file instead.
 
-Then read the ledger.
+Then read from the ledger only what this step needs, which is each app's heading and its two "Last audit" lines:
+
+```
+grep -n -E '^(## |Last audit:|Changed by the last audit:)' ~/.claude/skills/app-audit/audit-ledger.md
+```
+
+Do not read the whole ledger here. It grows with every audit and can run to tens of thousands of tokens, most of it History lines for apps the run then skips. Step 2 reads an app's full section when the app is audited, and the line numbers this command prints say where each section starts.
 
 **An app is unchanged, and skipped on a run with no argument, when any of these holds:**
 
@@ -94,7 +100,7 @@ Run every check on every audited app. A check that does not apply (no dependenci
 
 **E. Leftover files.** Backup copies (`*.bak*`, `* copy*`, `*.orig`), empty files, and build output or caches outside `.gitignore`. Google Drive's zero-size folder-icon files (named `Icon` followed by a carriage return) are not leftovers; exclude them with `-not -name 'Icon'$'\r'`. They are a finding only inside the git data folder, where they break `git fetch` (check with `find "$(git rev-parse --git-dir)" -name 'Icon'$'\r' | wc -l`, which also works where `.git` is a pointer file).
 
-**F. Dependencies with known vulnerabilities.** Read-only checks. Where there is a `package-lock.json`, run `npm audit --omit=dev` and report high and critical findings with the package and the fixed version, saying which `npm audit fix` fixes and which need a breaking upgrade. Decide that from `npm audit fix --dry-run`, which changes nothing, not from the "fix available via `npm audit fix`" line, which npm also prints for an advisory whose only fix is a major upgrade of the parent package. For a Python app with a virtual environment, run `uvx pip-audit --path <venv>/lib/python*/site-packages`. Audit the environment the installed command actually uses, found from its launch config or running process, which is not always the repo's virtual environment. In a uv environment, audit the folder that its `_uv_ephemeral_overlay.pth` file names (under `~/.cache/uv/archive-v0/`), which is where the packages are. That file holds a line of Python (`import site; site.addsitedir("...")`), not a bare path: take the folder from the first `addsitedir(...)` and check that it exists before auditing it, because pip-audit prints "No known vulnerabilities found" for a path that does not exist. Before proposing a major-version upgrade, check whether another installed package pins the version (`pip show <package>`, `npm ls <package>`) and say so in the finding. Check two more things before proposing one: that the library which calls the package works with the new major version, and that the advisory reaches the app at all (an advisory about a server handling untrusted input does not reach a client). Say in the finding what each check showed.
+**F. Dependencies with known vulnerabilities.** Read-only checks. Where there is a `package-lock.json`, run `npm audit --omit=dev` and report high and critical findings with the package and the fixed version, saying which `npm audit fix` fixes and which need a breaking upgrade. Decide that from `npm audit fix --dry-run`, which changes nothing, not from the "fix available via `npm audit fix`" line, which npm also prints for an advisory whose only fix is a major upgrade of the parent package. Report a moderate finding as well when that dry run shows a fix that is not a major upgrade, such as a patch release that clears moderate advisories on a public site's framework. A moderate finding whose only fix is a breaking upgrade stays out of Open and is named in the History line. For a Python app with a virtual environment, run `uvx pip-audit --path <venv>/lib/python*/site-packages`. Audit the environment the installed command actually uses, found from its launch config or running process, which is not always the repo's virtual environment. In a uv environment, audit the folder that its `_uv_ephemeral_overlay.pth` file names (under `~/.cache/uv/archive-v0/`), which is where the packages are. That file holds a line of Python (`import site; site.addsitedir("...")`), not a bare path: take the folder from the first `addsitedir(...)` and check that it exists before auditing it, because pip-audit prints "No known vulnerabilities found" for a path that does not exist. Before proposing a major-version upgrade, check whether another installed package pins the version (`pip show <package>`, `npm ls <package>`) and say so in the finding. Check two more things before proposing one: that the library which calls the package works with the new major version, and that the advisory reaches the app at all (an advisory about a server handling untrusted input does not reach a client). Say in the finding what each check showed.
 
 **G. It still passes its own checks.** Run only checks that send nothing, deploy nothing, touch no live data, and leave nothing behind:
 
@@ -102,6 +108,8 @@ Run every check on every audited app. A check that does not apply (no dependenci
 - `python3 -c "import ast,sys; ast.parse(open(sys.argv[1]).read())" <file>` on Python files (not `py_compile`, which writes `__pycache__` into the app), `bash -n` or `zsh -n` on shell scripts, `node --check` on JavaScript, `swiftc -parse <file>` on Swift files one at a time, `plutil -lint` on plists, and a parse check on JSON and YAML config.
 
 A check that needs a local service that is not running is skipped and named in the report; do not start the service. A test that writes to a local service is skipped unless it is known to remove everything it writes. A test that rewrites a tracked file is followed by `git checkout -- <file>`, so the audit leaves nothing behind.
+
+One write to a local service is allowed, to test a claim in the app's docs. When a doc claim about database behavior cannot be settled by any read-only query, the statement that tests it may run against the local database service, if that service is already running, inside one transaction that ends in `rollback`, so nothing persists. Run the read-only queries first. Never do this against a hosted database, never start the service for it, and never commit the transaction. Name the statement and the rollback in the report. A claim that a new function is not executable by an anonymous role, for example, can be proved with one `create function` inside a rolled-back transaction.
 
 **H. Installed copies match the repo.** Where the app keeps a LaunchAgent plist or similar file that is installed elsewhere, compare the repo's copy with the installed one and report any difference.
 
@@ -167,6 +175,7 @@ Changed by the last audit: README.md.
 - **Declined** holds findings the user said not to raise again, each with their reason. Only the user moves a finding here.
 - **History** gets one line per audit. Work done after the report gets its own line: `- 2026-10-01, after the audit, at the user's instruction: <what was done> (cleared 2).` When a fix was committed, name the commit, so the next audit can check it with `git show`.
 - "Last audit" records the date, the commit, and the files `git status --short` lists at the end. "Changed by the last audit" lists the files this audit edited. Step 1 depends on both lines. For an app with no git, "Last audit" gives the audit date and the date of the app's newest file instead: `Last audit: 2026-10-01. No git; newest file 2026-09-28.`
+- An app that has left scope (moved into a folder that is never audited, or deleted) keeps its section, with a last History line that says when it left and where it went. That line clears its Open findings, and the section is not rechecked or reported again.
 
 ## 7. Verify and report
 
@@ -188,7 +197,7 @@ The audit ends when the report is sent. What the user asks for next is their ins
 
 - **"Walk me through the open findings."** One finding per message, in ledger order: what it is, the recommendation first ("apply" or "decline") with the reason and a rough size. Wait for an answer before the next.
 - **"Commit and push the audit edits."** In each app, stage only the files the audit changed, by name, never `git add -A`. Run `git fetch` first and stop if the branch is behind its remote. Follow the app's CLAUDE.md for anything it requires before a commit. One commit per app, saying what changed and that the app audit found it. Never force-push or amend. If a push deploys the app, say so and check afterwards that it still responds.
-- **"Apply" or "fix" a reported finding.** Do it, keep the edit as small as the finding needs, and verify it as step 5 describes. After a dependency upgrade, run `pip check` or `npm ls` and import the app's main packages as well as re-auditing. Commit only if asked.
+- **"Apply" or "fix" a reported finding.** Do it, keep the edit as small as the finding needs, and verify it as step 5 describes. After a dependency upgrade, run `pip check` or `npm ls` and import the app's main packages as well as re-auditing. Where the apps folder syncs through a cloud drive, run `git status --short` again a minute after switching an app to another branch and back, in a separate command: the sync can put the other branch's copy of a file back after the tree has read clean. Commit only if asked.
 - **A deletion the user asks for is a move to the Trash,** never `rm`.
 - **An install, an upgrade, a LaunchAgent change or a deploy** needs the user to name that action for that app. "Fix everything" does not cover it.
 - **Secrets stay the user's.** Never write a key's value into any file. Give them a command that reads it into their secrets store without printing it.
