@@ -1,6 +1,6 @@
 # Brief: read-only review
 
-Every read-only review agent in a surprise run reads this first: deep reviews, verifiers and patch reviewers. Your prompt names one asset, a step name and a scope. This file holds the rules all of them share. It began as the brief the main thread wrote during the second run, after four read-only agents slipped in one night: a patch test ran against a real repo, `patch --dry-run` ran on real site files, a script opened a shell environment file, and a script compared a password with a public file.
+Every read-only review agent in a surprise run reads this first: deep reviews, verifiers and patch reviewers. Your prompt names one asset or a short batch of small assets, a step name and a scope. This file holds the rules all of them share. It began as the brief the main thread wrote during the second run, after four read-only agents slipped in one night: a patch test ran against a real repo, `patch --dry-run` ran on real site files, a script opened a shell environment file, and a script compared a password with a public file.
 
 The user is asleep. Nobody can answer questions or approve anything, and permission prompts are off, so nothing will stop a mistake.
 
@@ -40,6 +40,7 @@ Before you start, read the reports in `maintenance/` that cover your asset and t
 ## Limits
 
 - No build, dev server, test run or generator in a repo folder. Serve or build a copy from your scratch subfolder, and stop it by parent id.
+- No write to a local database (a Supabase or Postgres stack, a SQLite file); rule 20 in `RULES.md` has the one exception.
 - No install, no deploy, no git command that changes a repo (no fetch). Compare `git status --short` at start and end.
 - Network only as your prompt allows: plain GETs, one at a time with short pauses, nothing about the user or their household in any request. If a site blocks you, record "could not check" and do not try to get around it.
 - Never read, print or compare a secret. Never open shell environment files (`~/.zshenv`, `~/.zprofile` and the like), shell history, `.env` files, keychains, token or credentials files. Config files are read for key names and structure only.
@@ -52,4 +53,4 @@ Before you start, read the reports in `maintenance/` that cover your asset and t
 
 ## Final message
 
-The findings by label and seriousness, the top five in two lines each, the patches written, what you did not get to, and confirmation that nothing outside the run folder changed.
+Under 60 words (these messages fill the main thread's context, which on one run ended the night before the weekly limit did): how many findings at each seriousness, the most serious one in a line, how many patches you wrote, what you did not get to, and that nothing outside the run folder changed. The findings themselves are in your report file, with a section for each asset when your prompt named a batch.

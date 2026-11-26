@@ -124,6 +124,8 @@ One write to a local service is allowed, to test a claim in the app's docs. When
 | **Known** | It is on the app's own to-do list, or already under "Open". Not reported again. |
 | **Declined before** | It is under "Declined" in the ledger. Skip it silently. |
 
+A proposed fix that sets a new condition or threshold (a level, a timeout, a count) is tested against the log or data that raised the finding before it goes into the report. If that cannot be done, report the finding without a proposed fix and say so. On one audit the report proposed a fix that assumed a signal reads as active only part of the time; the same log showed it above the threshold in nearly every line, and the fix was dropped after the user had been told it would work.
+
 **Apply a fix only when one of these is true:**
 
 1. **It does not change what the app does when it runs.** Corrections to a README, a CLAUDE.md fact, a comment or a docstring; a stale path in a doc; a line added to `.gitignore`.
@@ -197,9 +199,9 @@ The audit ends when the report is sent. What the user asks for next is their ins
 
 - **"Walk me through the open findings."** One finding per message, in ledger order: what it is, the recommendation first ("apply" or "decline") with the reason and a rough size. Wait for an answer before the next.
 - **"Commit and push the audit edits."** In each app, stage only the files the audit changed, by name, never `git add -A`. Run `git fetch` first and stop if the branch is behind its remote. Follow the app's CLAUDE.md for anything it requires before a commit. One commit per app, saying what changed and that the app audit found it. Never force-push or amend. If a push deploys the app, say so and check afterwards that it still responds.
-- **"Apply" or "fix" a reported finding.** Do it, keep the edit as small as the finding needs, and verify it as step 5 describes. After a dependency upgrade, run `pip check` or `npm ls` and import the app's main packages as well as re-auditing. Where the apps folder syncs through a cloud drive, run `git status --short` again a minute after switching an app to another branch and back, in a separate command: the sync can put the other branch's copy of a file back after the tree has read clean. Commit only if asked.
+- **"Apply" or "fix" a reported finding.** Do it, keep the edit as small as the finding needs, and verify it as step 5 describes. After a dependency upgrade, run `pip check` or `npm ls` and import the app's main packages as well as re-auditing. Where the apps folder syncs through a cloud drive, run `git status --short` again a minute after switching an app to another branch and back, in a separate command: the sync can put the other branch's copy of a file back after the tree has read clean. Commit and push the fix only if asked for that too, with one exception: "apply all", "apply all as recommended" or "fix everything" in reply to the report is a yes to every finding, so each fix is applied, committed and pushed as "Commit and push the audit edits" describes, with no second question. On one audit the user asked for all the fixes to be applied as recommended, and the commit and push were held for another yes, which is the opposite of what they asked for. The installs, upgrades, LaunchAgent changes and deploys in the bullet below are still asked about, in the same message that reports the rest as done.
 - **A deletion the user asks for is a move to the Trash,** never `rm`.
-- **An install, an upgrade, a LaunchAgent change or a deploy** needs the user to name that action for that app. "Fix everything" does not cover it.
+- **An install, an upgrade, a LaunchAgent change or a deploy** needs the user to name that action for that app. "Fix everything" or "apply all" does not cover it; ask about those findings in one message.
 - **Secrets stay the user's.** Never write a key's value into any file. Give them a command that reads it into their secrets store without printing it.
 - **Keep the ledger true.** Remove each cleared finding from Open, update "Last audit", and add the "after the audit" History line. A declined finding moves to Declined with the reason.
 

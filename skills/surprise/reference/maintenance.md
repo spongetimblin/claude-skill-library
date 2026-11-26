@@ -17,7 +17,7 @@ Everything else in this file still applies, including what is left out of every 
 
 ## The order of work
 
-The list order is the priority when budget is short. One agent per asset, never two on the same asset. How many run at once is set by the pace rule in "Budget and models" in `SKILL.md`: at most four agents that may edit at a time, and as many read-only agents as the pace needs. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
+The list order is the priority when budget is short. One agent per asset or per batch of small assets, never two on the same asset. Give an agent three to five small assets at a time (skills, tasks, CLAUDE.md files), with one report section for each, so that fewer notifications reach the main thread; an app, a site or an MCP server keeps an agent of its own (on one run the main thread's context, not the weekly limit, ended the night). How many run at once is set by the pace rule in "Budget and models" in `SKILL.md`: at most four agents that may edit at a time, and as many read-only agents as the pace needs. The mid-size model for audits, the small model for bulk extraction that a script or a second agent verifies, a script for anything computable. Read usage before starting each agent.
 
 1. **The maintenance skills named in the Setup section of `SKILL.md`,** as written. A log or file whose own rules keep a change for a session with the user present is left as it is: overnight the skill records its recommended answer and changes nothing, and that is not a failure.
 2. **Whatever those skills skipped as unchanged:** run them again, naming what was skipped.

@@ -12,6 +12,9 @@ that is still in context. Standard library only.
     python3 session_text.py --all           every turn, not only the summarized ones
     python3 session_text.py --max-chars N   longest text kept per message (800)
     python3 session_text.py --out FILE      where to save the text if it is too long to print
+    python3 session_text.py --at "2026-11-21 13:33"
+                                            each message at that time, in full with nothing cut
+                                            (copy the time from the line the message was printed on)
 
 Text longer than PRINT_LIMIT characters is saved to a file instead (--out, or a file in
 the system's temporary folder), and only the user's own messages are printed, one short
@@ -28,7 +31,7 @@ from pathlib import Path
 
 PROJECTS = Path.home() / ".claude" / "projects"
 SKIP_TAGS = re.compile(r"<(system-reminder|task-notification)\b.*?</\1>", re.S)
-PRINT_LIMIT = 25000   # above this, a tool's display cuts the output, so save it to a file
+PRINT_LIMIT = 20000   # above this, a tool's display cuts the output, so save it to a file
 LIST_CHARS = 120      # longest line kept per user message in the short list
 
 
@@ -94,6 +97,7 @@ def main():
     parser.add_argument("--all", action="store_true", help="print every turn")
     parser.add_argument("--max-chars", type=int, default=800)
     parser.add_argument("--out", type=Path, help="file for the text when it is too long to print")
+    parser.add_argument("--at", metavar="TIME", help='print in full each message whose printed time starts with TIME, such as "2026-11-21 13:33"')
     args = parser.parse_args()
 
     turns = []
@@ -119,6 +123,23 @@ def main():
             text = SKIP_TAGS.sub("", text_of(entry.get("message", {}).get("content"))).strip()
             if text:
                 turns.append((entry.get("timestamp", "")[:16], entry["type"].upper(), text))
+
+    if args.at:
+        # One message in full, from anywhere in the session: shorten() cuts the middle of a long one.
+        hits = [(local_time(stamp), role, text) for stamp, role, text in turns]
+        hits = [hit for hit in hits if hit[0].startswith(args.at.strip())]
+        if not hits:
+            sys.exit(f'No message whose time starts with "{args.at}". Copy the time from the line it was printed on.')
+        whole = "\n".join(f"[{stamp}] {role}: {text}\n" for stamp, role, text in hits)
+        if len(whole) <= PRINT_LIMIT:
+            print(whole)
+            return
+        base = args.out or Path(tempfile.gettempdir()) / f"session-text-{path.stem}.txt"
+        out = base.with_name(f"{base.stem}-at{base.suffix}")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(whole + "\n", encoding="utf-8")
+        print(f"{len(whole):,} characters is too long to print, so the {len(hits)} message(s) are saved in:\n{out}")
+        return
 
     shown = turns if args.all else turns[:last_summary]
     shown = [(local_time(stamp), role, text) for stamp, role, text in shown]

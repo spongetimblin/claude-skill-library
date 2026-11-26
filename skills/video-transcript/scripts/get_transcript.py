@@ -300,7 +300,7 @@ def make_header(meta, url, source, title, speaker_marks=False, byline=None):
     if byline and not meta:
         h.append(byline)
     bits = []
-    who = meta.get("channel") or meta.get("uploader")
+    who = meta.get("channel") or meta.get("uploader") or meta.get("series")  # a podcast episode has only series
     if who:
         bits.append(who)
     d = meta.get("upload_date") or meta.get("release_date")
